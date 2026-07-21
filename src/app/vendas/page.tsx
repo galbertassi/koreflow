@@ -158,11 +158,14 @@ export default function VendasPremiumPage() {
           {/* Container interno que acompanha a mesma escala da imagem 
               No mobile, mostramos a imagem inteira sem zoom para não cortar o laptop e outros elementos do mockup.
           */}
-          <div className="relative w-full h-auto transform lg:scale-[1.10] lg:translate-x-12 xl:translate-x-24 2xl:translate-x-32 origin-center lg:origin-right transition-transform duration-1000">
-            <img
+          <div className="relative w-full h-auto transform lg:scale-[1.10] lg:translate-x-12 xl:translate-x-24 2xl:translate-x-32 origin-center lg:origin-right transition-transform duration-1000 aspect-[16/10]">
+            <Image
               src="/background-hero.png"
               alt="KORE Flow Workspace"
-              className="w-full h-auto object-contain opacity-95 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:none]"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 1500px"
+              className="object-contain opacity-95 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:none]"
             />
 
             <HeroSimulation />
@@ -803,10 +806,12 @@ function DarkImageCard({ bgImage, delay, onClick }: { bgImage: string, delay: nu
       onClick={onClick}
       className="relative w-full h-full bg-[#111] overflow-hidden group border border-white/5 rounded-2xl flex flex-col cursor-pointer"
     >
-      <img
+      <Image
         src={bgImage}
         alt="Feature Koreflow"
-        className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
       />
     </motion.div>
   );
@@ -856,9 +861,12 @@ function FaqItem({ question, answer }: { question: string, answer: string }) {
 function MetricCard({ image, metric, text }: { image: string, metric: string, text: string }) {
   return (
     <div className="min-w-[300px] md:min-w-[400px] h-[500px] relative rounded-sm overflow-hidden group border border-white/5">
-      <div
-        className="absolute inset-0 bg-cover bg-top opacity-70 group-hover:opacity-100 grayscale group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700"
-        style={{ backgroundImage: `url('${image}')` }}
+      <Image
+        src={image}
+        alt="Metric"
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-cover object-top opacity-70 group-hover:opacity-100 grayscale group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700"
       />
       <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent pointer-events-none"></div>
 
@@ -880,7 +888,7 @@ function FeatureNarrativeCard({ bgImage, title, hoje, resolve, resultado, delay,
       className="flex flex-col gap-6"
     >
       <div className="h-64 sm:h-80 relative overflow-hidden rounded-2xl border border-white/10 shadow-lg cursor-pointer group" onClick={onClick}>
-        <img src={bgImage} className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105" alt={title} />
+        <Image src={bgImage} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover object-top transition-transform duration-700 group-hover:scale-105" alt={title} />
         <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500"></div>
       </div>
       <div>
