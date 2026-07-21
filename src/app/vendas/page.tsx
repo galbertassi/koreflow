@@ -97,7 +97,7 @@ export default function VendasPremiumPage() {
       <section className="relative w-full bg-[#0A0A0A] overflow-hidden flex flex-col lg:block lg:min-h-screen pt-32 pb-0 lg:pt-0 lg:pb-0">
 
         {/* Efeito Glow (Estático) - Topo no mobile, Direita no Desktop */}
-        <div className="absolute top-[5%] lg:top-1/2 left-1/2 lg:left-auto lg:right-[5%] -translate-x-1/2 lg:translate-x-0 -translate-y-1/2 w-[120vw] h-[120vw] lg:w-[40vw] lg:h-[40vw] bg-[#8B5CF6]/20 lg:bg-[#8B5CF6]/15 blur-[120px] lg:blur-[120px] rounded-full z-0 transform-gpu pointer-events-none"></div>
+        <div className="absolute top-[5%] lg:top-1/2 left-1/2 lg:left-auto lg:right-[5%] -translate-x-1/2 lg:translate-x-0 -translate-y-1/2 w-[120vw] h-[120vw] lg:w-[40vw] lg:h-[40vw] bg-[#8B5CF6]/20 lg:bg-[#8B5CF6]/15 blur-[120px] rounded-full z-0 transform-gpu will-change-transform pointer-events-none"></div>
 
         {/* Partículas sutis no ar */}
         <div className="absolute top-[30%] left-[60%] w-1 h-1 bg-[#8B5CF6]/40 rounded-full blur-[1px]"></div>
@@ -330,7 +330,7 @@ export default function VendasPremiumPage() {
       {/* 5. KORE AI (O COPILOTO) */}
       <section className="w-full bg-[#050505] py-32 overflow-hidden relative">
         {/* Glow de fundo */}
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6]/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6]/5 blur-[120px] rounded-full z-0 pointer-events-none transform-gpu will-change-transform"></div>
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 flex flex-col lg:flex-row items-center gap-16">
           <div className="lg:w-1/2 flex flex-col items-start">
@@ -462,7 +462,7 @@ export default function VendasPremiumPage() {
 
       {/* 9. PLANOS (DARK) */}
       <section id="planos" className="w-full bg-[#0A0A0A] py-32 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#8B5CF6]/10 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#8B5CF6]/10 blur-[120px] rounded-full z-0 pointer-events-none transform-gpu will-change-transform"></div>
 
         <div className="relative z-10 w-full max-w-6xl">
           <div className="text-center mb-16">
@@ -511,18 +511,12 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Histórico Completo</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Timer Inteligente</span></li>
               </ul>
-              <button 
-                onClick={() => handleCheckout("PRO_MONTHLY")}
-                disabled={loadingPlan === "PRO_MONTHLY"}
-                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:cursor-wait"
+              <a 
+                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
+                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
-                {loadingPlan === "PRO_MONTHLY" ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Conectando...
-                  </>
-                ) : "Assinar Mensal"}
-              </button>
+                Assinar Mensal
+              </a>
             </div>
 
             {/* PRO ANUAL */}
@@ -545,18 +539,12 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Desconto de 2 meses</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Suporte Prioritário</span></li>
               </ul>
-              <button 
-                onClick={() => handleCheckout("PRO_ANNUAL")}
-                disabled={loadingPlan === "PRO_ANNUAL"}
-                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:cursor-wait"
+              <a 
+                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
+                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
-                {loadingPlan === "PRO_ANNUAL" ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Conectando...
-                  </>
-                ) : "Assinar Anual"}
-              </button>
+                Assinar Anual
+              </a>
             </div>
           </div>
         </div>

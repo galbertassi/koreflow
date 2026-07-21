@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KORE FLOW",
-  description: "Sistema operacional pessoal premium",
+  title: "KORE FLOW | O gerenciador de tarefas inteligente",
+  description: "Organize suas demandas e comprove o seu esforço.",
+  icons: {
+    icon: "/fiveicon_white.png",
+  },
 };
 
 export default function RootLayout({
