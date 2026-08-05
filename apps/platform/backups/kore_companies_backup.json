@@ -1,0 +1,24 @@
+[
+  {
+    "id": "cf4bfea0-5b64-491a-a44d-4d62576d7371",
+    "name": "Workspace de Gabriel",
+    "created_at": "2026-07-21T03:06:12.412479+00:00",
+    "updated_at": "2026-07-21T03:06:12.412479+00:00",
+    "workspace_type": "personal",
+    "personal_owner_user_id": "e7f65d9a-aaee-4f64-9711-ff6170d44044",
+    "stripe_customer_id": "cus_UvLEWPJNw2BzkV",
+    "trial_started_at": "2026-07-21T03:06:12.412479+00:00",
+    "trial_ends_at": "2026-08-04T03:06:12.412479+00:00"
+  },
+  {
+    "id": "6d62324f-c9b1-4025-85cc-1803911c582e",
+    "name": "E2E Workspace",
+    "created_at": "2026-07-21T05:21:13.694479+00:00",
+    "updated_at": "2026-07-21T05:21:13.694479+00:00",
+    "workspace_type": "personal",
+    "personal_owner_user_id": "3c1200cd-bc8b-4db4-b32f-88f3523b5a46",
+    "stripe_customer_id": "cus_UvNO3FvyZBhUPV",
+    "trial_started_at": null,
+    "trial_ends_at": null
+  }
+]

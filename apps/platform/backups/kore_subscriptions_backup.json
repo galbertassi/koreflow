@@ -1,0 +1,20 @@
+[
+  {
+    "id": "213704ed-7270-441f-b5af-910a08a91772",
+    "company_id": "6d62324f-c9b1-4025-85cc-1803911c582e",
+    "stripe_customer_id": "cus_UvNO3FvyZBhUPV",
+    "stripe_subscription_id": "sub_1TvWda30ilBCfRfqwqX85OSf",
+    "stripe_price_id": "price_1TvT7s30ilBCfRfqKihBNIWZ",
+    "billing_cycle": "monthly",
+    "status": "active",
+    "current_period_start": "2026-07-21T05:54:49.157+00:00",
+    "current_period_end": "2026-07-21T05:54:49.157+00:00",
+    "cancel_at_period_end": true,
+    "status_changed_at": "2026-07-21T05:54:49.157+00:00",
+    "past_due_since": null,
+    "last_synced_at": "2026-07-21T05:54:49.157+00:00",
+    "created_at": "2026-07-21T05:54:46.365314+00:00",
+    "updated_at": "2026-07-21T05:54:46.365314+00:00",
+    "last_stripe_event_id": "evt_test_1784613288633_0.9693237775176324"
+  }
+]
