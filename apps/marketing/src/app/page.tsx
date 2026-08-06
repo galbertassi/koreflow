@@ -23,7 +23,7 @@ export default function VendasPremiumPage() {
       
       if (res.status === 401 || res.status === 403) {
         // Usuário não autenticado ou sem permissão - direciona pro onboarding
-        window.location.href = `${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=${planKey}`;
+        window.location.href = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br'}/cadastro?intent=checkout&plan=${planKey}`;
         return;
       }
       
@@ -117,7 +117,7 @@ export default function VendasPremiumPage() {
 
               <div className="flex flex-col items-center lg:items-start gap-4">
                 <a
-                  href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro`}
+                  href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br'}/cadastro`}
                   className="group relative overflow-hidden flex items-center gap-3 bg-[#6D28D9] hover:bg-[#5B21B6] text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-medium text-base md:text-lg transition-all duration-300 shadow-[0_4px_20px_rgba(109,40,217,0.4)] hover:shadow-[0_8px_40px_rgba(109,40,217,0.7)] border border-white/5 hover:border-white/20"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700 ease-in-out"></div>
@@ -491,7 +491,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Calendário & Etiquetas</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Acesso Web</span></li>
               </ul>
-              <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
+              <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br'}/cadastro`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
                 Começar Agora
               </a>
             </div>
@@ -515,7 +515,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Timer Inteligente</span></li>
               </ul>
               <a 
-                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
+                href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br'}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Assinar Mensal
@@ -543,7 +543,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Suporte Prioritário</span></li>
               </ul>
               <a 
-                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
+                href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br'}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Assinar Anual
