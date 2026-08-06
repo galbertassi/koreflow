@@ -5,13 +5,16 @@ import { billingConfig } from "@/lib/billing/config";
 import type Stripe from "stripe";
 
 // Usando o Supabase Admin (Service Role) para Webhooks (Bypass RLS)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: { persistSession: false },
-  }
-);
+// Envolvido em função para evitar que o Next.js falhe no build por falta de variáveis
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    {
+      auth: { persistSession: false },
+    }
+  );
+}
 
 // Trata todos os eventos do stripe relacionados a assinatura
 const RELEVANT_EVENTS = new Set([
@@ -66,7 +69,7 @@ export async function POST(req: Request) {
 
   try {
     // IDEMPOTÊNCIA: Inserir em kore_stripe_events como 'pending'
-    const { data: insertedEvent, error: insertError } = await supabaseAdmin
+    const { data: insertedEvent, error: insertError } = await getSupabaseAdmin()
       .from("kore_stripe_events")
       .insert({
         stripe_event_id: event.id,
@@ -94,7 +97,7 @@ export async function POST(req: Request) {
       await processStripeEvent(event);
 
       // Sucesso -> Marcar processed
-      await supabaseAdmin
+      await getSupabaseAdmin()
         .from("kore_stripe_events")
         .update({ status: "processed", processed_at: new Date().toISOString() })
         .eq("id", eventId);
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
     } catch (processError: any) {
       // Erro -> Marcar failed
       console.error(`[Webhook] Error processing event ${event.id}:`, processError);
-      await supabaseAdmin.rpc("increment_stripe_event_attempt", {
+      await getSupabaseAdmin().rpc("increment_stripe_event_attempt", {
         event_uuid: eventId,
         err_msg: processError.message,
       });
@@ -189,7 +192,7 @@ async function processStripeEvent(event: Stripe.Event) {
   // Se o status for past_due e não existia, setamos o timestamp atual.
   // Se for active, cancelamos. Mas para não apagar no Upsert, faremos em duas etapas ou via RPC.
   // Vamos buscar a assinatura local atual primeiro:
-  const { data: localSub } = await supabaseAdmin
+  const { data: localSub } = await getSupabaseAdmin()
     .from("kore_subscriptions")
     .select("status, past_due_since")
     .eq("stripe_subscription_id", subscription.id)
@@ -206,7 +209,7 @@ async function processStripeEvent(event: Stripe.Event) {
   }
 
   // Executa o UPSERT usando constraint no stripe_subscription_id
-  const { error: upsertError } = await supabaseAdmin
+  const { error: upsertError } = await getSupabaseAdmin()
     .from("kore_subscriptions")
     .upsert(
       { ...upsertData, past_due_since: finalPastDueSince },

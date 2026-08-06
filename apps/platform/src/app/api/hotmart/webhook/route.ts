@@ -3,13 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 
 // Usamos @supabase/supabase-js diretamente com o SERVICE_ROLE_KEY 
 // porque Webhooks não têm contexto de usuário logado (cookies)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
+// Os clients devem ser instanciados dentro da função (ou com envs opcionais)
+// para evitar que o build do Next.js quebre quando as variáveis não existem.
 export async function POST(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const body = await req.json();
 
     // Hotmart geralmente envia 'event' = 'PURCHASE_APPROVED' (webhook versão 2.0+)

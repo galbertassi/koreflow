@@ -27,7 +27,7 @@ if (typeof window === "undefined" && billingConfig.enabled) {
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
-      throw new Error(`[Billing] Missing required environment variable: ${envVar}`);
+      console.warn(`[Billing] Missing environment variable (OK if building): ${envVar}`);
     }
   }
 }
