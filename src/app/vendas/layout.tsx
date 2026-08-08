@@ -1,4 +1,40 @@
 import Image from "next/image";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "KORE Flow",
+  description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+  alternates: {
+    canonical: "https://flow.koredigital.com.br",
+  },
+  openGraph: {
+    type: "website",
+    url: "https://flow.koredigital.com.br",
+    title: "KORE Flow",
+    description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+    siteName: "KORE Flow",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KORE Flow",
+    description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "KORE Flow",
+  "url": "https://flow.koredigital.com.br",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "KORE Digital Experiences",
+    "url": "https://koredigital.com.br"
+  }
+};
 
 export default function VendasLayout({
   children,
@@ -29,6 +65,10 @@ export default function VendasLayout({
       </nav>
 
       <main className="w-full">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {children}
       </main>
     </div>
