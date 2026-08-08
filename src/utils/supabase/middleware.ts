@@ -57,7 +57,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/cadastro") ||
     request.nextUrl.pathname.startsWith("/vendas") ||
     request.nextUrl.pathname.startsWith("/termos-de-uso") ||
-    request.nextUrl.pathname.startsWith("/privacidade");
+    request.nextUrl.pathname.startsWith("/privacidade") ||
+    request.nextUrl.pathname === "/sitemap.xml" ||
+    request.nextUrl.pathname === "/robots.txt";
 
   if (!session && !isPublicRoute) {
     const url = request.nextUrl.clone();
