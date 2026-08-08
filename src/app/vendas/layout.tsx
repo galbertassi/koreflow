@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://flow.koredigital.com.br"),
   title: "KORE Flow",
   description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
   alternates: {
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
+  "@id": "https://flow.koredigital.com.br",
   "name": "KORE Flow",
   "url": "https://flow.koredigital.com.br",
   "applicationCategory": "BusinessApplication",

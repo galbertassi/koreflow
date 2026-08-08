@@ -34,12 +34,6 @@ export async function updateSession(request: NextRequest) {
 
   const hostname = request.headers.get("host") || "";
 
-  // Se entrar pelo domínio flow na raiz, reescreve silenciosamente para a página de vendas
-  if (hostname.includes("flow.koredigital.com.br") && request.nextUrl.pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/vendas";
-    return NextResponse.rewrite(url);
-  }
 
   // Se tentar acessar a raiz pelo app.koredigital.com.br sem estar logado, vai pro login depois
   let session = null;
