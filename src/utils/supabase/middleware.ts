@@ -4,9 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
 
-  // Domínio público da landing — nunca interceptar com autenticação
-  // O next.config.ts rewrites / → /vendas neste domínio
+  // Domínio público da landing — reescreve / para /vendas sem autenticação
+  // Sitemap e robots passam direto
   if (hostname.includes("flow.koredigital.com.br")) {
+    if (request.nextUrl.pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/vendas";
+      return NextResponse.rewrite(url);
+    }
     return NextResponse.next({ request });
   }
 
