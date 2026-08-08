@@ -155,12 +155,14 @@ export default function VendasPremiumPage() {
             '--screen-radius': '6px',
           } as React.CSSProperties}
         >
-          {/* Container interno que acompanha a mesma escala da imagem */}
-          <div className="relative w-full h-auto lg:w-[90%] xl:w-[85%] 2xl:w-[80%] lg:ml-auto flex justify-center items-center">
+          {/* Container interno que acompanha a mesma escala da imagem 
+              No mobile, mostramos a imagem inteira sem zoom para não cortar o laptop e outros elementos do mockup.
+          */}
+          <div className="relative w-full h-auto transform lg:scale-[1.10] lg:translate-x-12 xl:translate-x-24 2xl:translate-x-32 origin-center lg:origin-right transition-transform duration-1000">
             <img
               src="/background-hero.png"
               alt="KORE Flow Workspace"
-              className="w-full h-auto object-contain opacity-95"
+              className="w-full h-auto object-contain opacity-95 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:none]"
             />
 
             <HeroSimulation />
