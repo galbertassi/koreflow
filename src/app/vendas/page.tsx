@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Clock, Target, Zap, LayoutDashboard, Brain, FileText, Search, Shield, ChevronRight, ChevronLeft, Check, X, ArrowUp, MessageCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { HeroSimulation } from "@/components/landing/simulation/HeroSimulation";
+
 
 export default function VendasPremiumPage() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -165,7 +165,7 @@ export default function VendasPremiumPage() {
               className="w-full h-auto object-contain opacity-95 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:none]"
             />
 
-            <HeroSimulation />
+
           </div>
         </div>
 
