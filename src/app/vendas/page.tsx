@@ -20,13 +20,13 @@ export default function VendasPremiumPage() {
         body: JSON.stringify({ plan: planKey }),
       });
       const data = await res.json();
-      
+
       if (res.status === 401 || res.status === 403) {
         // Usuário não autenticado ou sem permissão - direciona pro onboarding
         window.location.href = `${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=${planKey}`;
         return;
       }
-      
+
       if (data.url) {
         window.location.href = data.url;
       } else if (data.redirect_to_portal) {
@@ -158,15 +158,12 @@ export default function VendasPremiumPage() {
           {/* Container interno que acompanha a mesma escala da imagem 
               No mobile, mostramos a imagem inteira sem zoom para não cortar o laptop e outros elementos do mockup.
           */}
-          <div className="relative w-full h-auto transform lg:scale-[1.20] xl:scale-[1.10] 2xl:scale-100 origin-center lg:origin-right transition-transform duration-1000">
-              <img
-                src="/background-hero.png"
-                alt="KORE Flow Workspace"
-                className="w-full h-auto object-contain opacity-70 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)] transition-all duration-1000"
-              />
-              
-              {/* Camada de Blur que afeta APENAS as bordas da imagem, deixando o centro nítido */}
-              <div className="absolute inset-0 z-0 pointer-events-none backdrop-blur-[8px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_40%),linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_100%)] lg:[mask-image:linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_100%)] hidden lg:block"></div>
+          <div className="relative w-full h-auto transition-transform duration-1000">
+            <img
+              src="/background-hero.png"
+              alt="KORE Flow Workspace"
+              className="w-full h-auto object-contain opacity-95"
+            />
 
             <HeroSimulation />
           </div>
@@ -514,7 +511,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Histórico Completo</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Timer Inteligente</span></li>
               </ul>
-              <a 
+              <a
                 href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
@@ -542,7 +539,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Desconto de 2 meses</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Suporte Prioritário</span></li>
               </ul>
-              <a 
+              <a
                 href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
@@ -621,13 +618,13 @@ export default function VendasPremiumPage() {
               <span className="text-base text-[#888] font-medium">Redes sociais</span>
               <div className="flex items-center gap-5 text-[#888]">
                 <a href="https://www.linkedin.com/in/gabrielalbertassi/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="LinkedIn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect width="4" height="12" x="2" y="9" /><circle cx="4" cy="4" r="2" /></svg>
                 </a>
                 <a href="https://instagram.com/gabriel.albertassi" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
                 </a>
                 <a href="https://github.com/galbertassi" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="GitHub">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
                 </a>
               </div>
             </div>
@@ -637,7 +634,7 @@ export default function VendasPremiumPage() {
         {/* MIDDLE & BOTTOM SECTION */}
         <div className="w-full bg-[#1c1c1c] pt-20 pb-8 px-6 relative overflow-hidden">
           <div className="max-w-7xl mx-auto">
-            
+
             {/* MIDDLE SECTION */}
             <div className="flex flex-col xl:flex-row justify-between items-center gap-16 xl:gap-32 mb-24">
               {/* Left: Our KORE FLOW Logo + Phrase */}
@@ -671,16 +668,16 @@ export default function VendasPremiumPage() {
                 <div>
                   <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#555] font-bold mb-8">Contatos</h4>
                   <ul className="flex flex-col text-sm text-[#888]">
-                    <li className="leading-relaxed pb-5">Volta Redonda, RJ.<br/>Atendemos todo o Brasil</li>
+                    <li className="leading-relaxed pb-5">Volta Redonda, RJ.<br />Atendemos todo o Brasil</li>
                     <li className="border-t border-white/5 py-5 hover:text-white transition-colors">
                       <a href="https://api.whatsapp.com/send/?phone=5524999999345&text&type=phone_number&app_absent=0" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                         (24) 99999-9345
                       </a>
                     </li>
                     <li className="border-t border-white/5 pt-5 hover:text-white transition-colors">
                       <a href="mailto:gabriel.albertassic@gmail.com" className="flex items-center gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                         gabriel.albertassic@gmail.com
                       </a>
                     </li>
