@@ -158,7 +158,7 @@ export default function VendasPremiumPage() {
           {/* Container interno que acompanha a mesma escala da imagem 
               No mobile, mostramos a imagem inteira sem zoom para não cortar o laptop e outros elementos do mockup.
           */}
-          <div className="relative w-full h-auto transform lg:scale-[0.90] xl:scale-100 lg:translate-x-4 xl:translate-x-8 2xl:translate-x-12 origin-center lg:origin-right transition-transform duration-1000">
+          <div className="relative w-full h-auto transform lg:scale-[1.20] xl:scale-[1.10] 2xl:scale-100 origin-center lg:origin-right transition-transform duration-1000">
               <img
                 src="/background-hero.png"
                 alt="KORE Flow Workspace"
