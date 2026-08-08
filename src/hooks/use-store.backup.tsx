@@ -59,8 +59,7 @@ export interface Execucao {
   status: ExecucaoStatus;
   progresso: number;
   criadoEm: string;
-  tipoPlanejamento?: 'Previsto' | 'Demanda Extra';
-  tipoPlanejamento?: "Previsto" | "Demanda Extra";
+  tipo_planejamento?: 'Previsto' | 'Demanda Extra';
 }
 
 export interface Post {
@@ -113,6 +112,7 @@ export interface MetaUpdate {
 export interface Meta {
   id: string;
   titulo: string;
+  valorAlvo?: string;
   progresso: number;
   prazo: string;
   updates: MetaUpdate[];
@@ -127,6 +127,7 @@ export interface PostDia {
   status: "Planejado" | "Producao" | "Em analise para aprovação" | "Aprovado" | "Publicado" | "Pausado";
   link?: string;
   imagemUrl?: string;
+  observacao?: string;
 }
 
 export interface ClientePlano {

@@ -550,9 +550,9 @@ export default function KoreAiPage() {
   const handleCriarProjeto = () => {
     addProjeto({
       nome: `Projeto KORE AI — ${new Date().toLocaleDateString("pt-BR")}`,
-      cliente: configuracoes.agencia,
+      cliente: "KORE AI",
       inicio: new Date().toISOString().split("T")[0],
-      fim: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split("T")[0],
+      fim: new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0],
     });
     router.push("/projetos");
   };
@@ -563,7 +563,7 @@ export default function KoreAiPage() {
       categoria: "Marketing",
       entrega: new Date(new Date().setDate(new Date().getDate() + 7)).toLocaleDateString("pt-BR"),
       prioridade: "Alta",
-      tipoPlanejamento: "Previsto",
+      tipo_planejamento: "Previsto",
     });
     router.push("/execucoes");
   };

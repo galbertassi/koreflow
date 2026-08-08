@@ -23,7 +23,7 @@ export default function DashboardPage() {
   
   // Vamos definir 'Demandas Extras' como as execucoes com categoria 'Extra' ou algo que mostre que fugiu do escopo.
   // Como nao temos essa flag especifica agora, usaremos a Categoria "Urgente" se houver, ou apenas zerar.
-  const demandasExtras = execucoes.filter(e => e.tipoPlanejamento === "Demanda Extra" || e.categoria.toLowerCase().includes("urgente") || e.categoria.toLowerCase().includes("extra"));
+  const demandasExtras = execucoes.filter(e => e.tipo_planejamento === "Demanda Extra" || e.categoria.toLowerCase().includes("urgente") || e.categoria.toLowerCase().includes("extra"));
   const extras = demandasExtras.length;
   
   const risco = execucoes.filter(e => e.status === "Em Risco").length;
@@ -286,11 +286,11 @@ export default function DashboardPage() {
                     <td className="py-3 px-6 text-xs font-bold text-foreground">00{idx + 1}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{e.criadoEm}</td>
                     <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{e.titulo}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{e.cliente || "Cliente A"}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{"Cliente A"}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{e.categoria}</td>
                     <td className="py-3 px-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${e.tipoPlanejamento === "Demanda Extra" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
-                        {e.tipoPlanejamento || "Previsto"}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${e.tipo_planejamento === "Demanda Extra" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
+                        {e.tipo_planejamento || "Previsto"}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">

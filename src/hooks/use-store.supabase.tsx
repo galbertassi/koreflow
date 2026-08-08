@@ -31,6 +31,7 @@ export interface Evento {
   criadoEm: string;
 }
 
+
 export interface Configuracoes {
   nome: string;
   email: string;
@@ -111,6 +112,7 @@ export interface MetaUpdate {
 export interface Meta {
   id: string;
   titulo: string;
+  valorAlvo?: string;
   progresso: number;
   prazo: string;
   updates: MetaUpdate[];
@@ -125,6 +127,7 @@ export interface PostDia {
   status: "Planejado" | "Producao" | "Em analise para aprovação" | "Aprovado" | "Publicado" | "Pausado";
   link?: string;
   imagemUrl?: string;
+  observacao?: string;
 }
 
 export interface ClientePlano {

@@ -14,14 +14,17 @@ export default function CalendarioPage() {
   const [novoEvento, setNovoEvento] = useState({
     titulo: "",
     data: format(new Date(), "yyyy-MM-dd"),
+    hora: "12:00",
+    tipo: "Lembrete" as "Reuniao" | "Lembrete" | "Entrega",
     notificacao: true,
     alarme: true
   });
 
   const handleAdd = () => {
     if (!novoEvento.titulo.trim()) return;
-    addEvento(novoEvento);
-    setNovoEvento({ titulo: "", data: format(new Date(), "yyyy-MM-dd"), notificacao: true, alarme: true });
+    const { notificacao, alarme, ...eventoParaSalvar } = novoEvento;
+    addEvento(eventoParaSalvar);
+    setNovoEvento({ titulo: "", data: format(new Date(), "yyyy-MM-dd"), hora: "12:00", tipo: "Lembrete", notificacao: true, alarme: true });
     setShowForm(false);
   };
 
@@ -106,8 +109,12 @@ export default function CalendarioPage() {
                         </button>
                       </div>
                       <div className="flex items-center gap-1 mt-1">
-                        {e.alarme && <Clock className="w-2.5 h-2.5 text-[#8B5CF6]/60" />}
-                        {e.notificacao && <Bell className="w-2.5 h-2.5 text-[#8B5CF6]/60" />}
+                        {e.hora && (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-[#8B5CF6]/60" />
+                            <span className="text-[10px] text-muted-foreground">{e.hora}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

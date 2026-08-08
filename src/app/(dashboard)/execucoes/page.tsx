@@ -146,7 +146,7 @@ export default function ExecucoesPage() {
                   <td className={`py-4 px-4 text-[13px] ${priorityColors[row.prioridade] || ""}`}>{row.prioridade}</td>
                   <td className="py-4 px-4 text-[13px] text-muted-foreground">{row.entrega || "—"}</td>
                   <td className="py-4 px-4">
-                    <StatusBadge execucaoId={row.id} status={row.status} />
+                    <StatusBadge execucaoId={row.id} status={row.status as ExecucaoStatus} />
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2 min-w-[100px]">

@@ -39,28 +39,35 @@ export interface Execucao {
 export interface Post {
   id: string;
   titulo: string;
-  status: "A fazer" | "Fazendo" | "Aprovacao" | "Feito";
+  descricao?: string;
+  tipo?: string;
+  status: string;
   criadoEm: string;
 }
 
 export interface Campanha {
   id: string;
-  titulo: string;
+  nome: string;
+  descricao?: string;
+  status: string;
   posts: Post[];
   criadoEm: string;
 }
 
 export interface Inspiracao {
   id: string;
-  link: string;
-  descricao: string;
+  titulo: string;
+  url?: string;
+  nota?: string;
   criadoEm: string;
 }
 
 export interface Projeto {
   id: string;
   nome: string;
-  status: "Ativo" | "Pausado" | "Concluido";
+  cliente: string;
+  inicio: string;
+  fim: string;
   campanhas: Campanha[];
   inspiracoes: Inspiracao[];
   criadoEm: string;
@@ -76,6 +83,7 @@ export interface MetaUpdate {
 export interface Meta {
   id: string;
   titulo: string;
+  valorAlvo?: string;
   progresso: number;
   prazo: string;
   updates: MetaUpdate[];
@@ -117,6 +125,7 @@ export interface PostDia {
   status: "Planejado" | "Producao" | "Em analise para aprovação" | "Aprovado" | "Publicado" | "Pausado";
   link?: string;
   imagemUrl?: string;
+  observacao?: string;
 }
 
 export interface ClientePlano {
@@ -247,7 +256,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const { data: projData } = await supabase.from('kore_projetos').select('*').eq('user_id', user.id).order('criado_em', { ascending: false });
         if (projData) {
           setProjetos(projData.map(p => ({
-            id: p.id, nome: p.nome, status: p.status as any, campanhas: p.campanhas, inspiracoes: p.inspiracoes, criadoEm: p.criado_em
+            id: p.id, nome: p.nome, cliente: p.cliente, inicio: p.inicio, fim: p.fim, campanhas: p.campanhas, inspiracoes: p.inspiracoes, criadoEm: p.criado_em
           })));
         }
 
@@ -359,7 +368,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProjetos(prev => [...prev, newProj]);
     if (userId) {
       await supabase.from('kore_projetos').insert({
-        id: newProj.id, user_id: userId, nome: newProj.nome, status: newProj.status, campanhas: [], inspiracoes: [], criado_em: newProj.criadoEm
+        id: newProj.id, user_id: userId, nome: newProj.nome, cliente: newProj.cliente, inicio: newProj.inicio, fim: newProj.fim, campanhas: [], inspiracoes: [], criado_em: newProj.criadoEm
       });
     } else saveStateLocal({ projetos: [...projetos, newProj] });
   };

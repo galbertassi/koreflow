@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useModal } from "@/hooks/use-modal";
 import { useStore } from "@/hooks/use-store";
@@ -19,7 +19,7 @@ function CreateExecutionModal() {
 
   const handleSubmit = () => {
     if (!titulo.trim()) return;
-    addExecucao({ titulo, categoria, entrega, prioridade, tipoPlanejamento: tipoPlanejamento as any });
+    addExecucao({ titulo, categoria, entrega, prioridade, tipo_planejamento: tipoPlanejamento as any });
     setTitulo("");
     setCategoria("");
     setEntrega("");
