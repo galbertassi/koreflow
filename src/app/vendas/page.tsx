@@ -162,11 +162,11 @@ export default function VendasPremiumPage() {
             <img
               src="/background-hero.png"
               alt="KORE Flow Workspace"
-              className="w-full h-auto object-contain opacity-70 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)] transition-all duration-1000"
+              className="w-full h-auto object-contain opacity-70 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_98%,transparent_100%)] transition-all duration-1000"
             />
             
             {/* Camada de Blur que afeta APENAS as bordas da imagem, deixando o centro nítido */}
-            <div className="absolute inset-0 z-0 pointer-events-none backdrop-blur-[8px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_40%),linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_70%,black_85%,black_100%)] lg:[mask-image:linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_70%,black_85%,black_100%)] hidden lg:block"></div>
+            <div className="absolute inset-0 z-0 pointer-events-none backdrop-blur-[8px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_40%),linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_98%,black_100%)] lg:[mask-image:linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_98%,black_100%)] hidden lg:block"></div>
 
             <HeroSimulation />
           </div>
