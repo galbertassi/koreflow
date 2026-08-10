@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { login } from "./actions";
 import Image from "next/image";
@@ -188,7 +188,10 @@ export default function LoginPage({
               </form>
 
               {/* Links */}
-              <div className="pt-2 text-center">
+              <div className="pt-2 flex flex-col items-center gap-4">
+                <a href="https://flow.koredigital.com.br" className="w-full h-[52px] flex items-center justify-center rounded-xl text-[14px] font-semibold text-white transition-all duration-300 border border-white/10 hover:bg-white/10">
+                  Voltar para a página
+                </a>
                 <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
                   Esqueceu a senha?
                 </a>
@@ -198,7 +201,7 @@ export default function LoginPage({
         </div>
 
         {/* LOGO DA KORE ABAIXO */}
-        <div className="mt-8 flex flex-col items-center justify-center">
+        <div className="mt-20 flex flex-col items-center justify-center">
           <Image
             src="/logo-white2.svg"
             alt="KORE"
