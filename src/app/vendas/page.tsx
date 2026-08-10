@@ -6,6 +6,11 @@ import { ArrowRight, Clock, Target, Zap, LayoutDashboard, Brain, FileText, Searc
 import Image from "next/image";
 import { HeroSimulation } from "@/components/landing/simulation/HeroSimulation";
 
+const getAppUrl = () => {
+  const url = process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br';
+  return url.startsWith('http') ? url : `https://${url}`;
+};
+
 export default function VendasPremiumPage() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -23,7 +28,7 @@ export default function VendasPremiumPage() {
 
       if (res.status === 401 || res.status === 403) {
         // Usuário não autenticado ou sem permissão - direciona pro onboarding
-        window.location.href = `${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=${planKey}`;
+        window.location.href = `${getAppUrl()}/cadastro?intent=checkout&plan=${planKey}`;
         return;
       }
 
@@ -91,85 +96,588 @@ export default function VendasPremiumPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0A0A0A] overflow-x-clip font-sans">
+    <div className="flex flex-col min-h-screen bg-black overflow-x-clip font-sans">
 
-      {/* 1. HERO CINEMATOGRÁFICO (FOTOGRAFIA CONTÍNUA - SEM CORTES) */}
-      <section className="relative w-full bg-[#0A0A0A] overflow-hidden flex flex-col lg:block lg:min-h-screen pt-32 pb-0 lg:pt-0 lg:pb-0">
+      {/* 1. HERO CINEMATOGRÁFICO — COMPOSIÇÃO PROPORCIONAL ÚNICA */}
+      <section className="relative w-full bg-black overflow-hidden">
 
-        {/* Efeito Glow (Estático) - Topo no mobile, Direita no Desktop */}
-        <div className="absolute top-[5%] lg:top-1/2 left-1/2 lg:left-auto lg:right-[5%] -translate-x-1/2 lg:translate-x-0 -translate-y-1/2 w-[120vw] h-[120vw] lg:w-[40vw] lg:h-[40vw] bg-[#8B5CF6]/20 lg:bg-[#8B5CF6]/15 blur-[120px] rounded-full z-0 transform-gpu will-change-transform pointer-events-none"></div>
-
-        {/* Partículas sutis no ar */}
-        <div className="absolute top-[30%] left-[60%] w-1 h-1 bg-[#8B5CF6]/40 rounded-full blur-[1px]"></div>
-        <div className="absolute top-[60%] left-[80%] w-1.5 h-1.5 bg-[#8B5CF6]/30 rounded-full blur-[2px]"></div>
-        <div className="absolute top-[40%] left-[45%] w-2 h-2 bg-[#8B5CF6]/20 rounded-full blur-[3px]"></div>
-
-        {/* Conteúdo sobreposto - Mobile: Topo | Desktop: Esquerda Absoluto */}
-        <div className="relative lg:absolute inset-0 z-10 w-full flex flex-col justify-center pointer-events-none lg:h-full order-1 lg:order-none">
-
-          {/* Gradiente sutil ajustado para revelar mais dos detalhes originais da imagem (Apenas Desktop) */}
-          <div className="hidden lg:block absolute inset-0 z-0 bg-gradient-to-r from-[#0A0A0A]/90 via-[#0A0A0A]/30 to-transparent w-full lg:w-[45%]"></div>
-
-          {/* Conteúdo */}
-          <div className="relative z-10 w-full max-w-[1600px] mx-auto px-6 lg:px-12 xl:px-16 lg:-mt-16 pointer-events-auto flex justify-start">
-            <div
-              className="w-full max-w-full sm:max-w-[80%] lg:max-w-[400px] xl:max-w-[450px] 2xl:max-w-[500px] flex flex-col items-start text-left z-20"
-            >
-              <h1 className="text-white font-bold text-4xl sm:text-5xl lg:text-[48px] xl:text-[54px] leading-[1.15] tracking-tight mb-5 drop-shadow-2xl">
-                Seu trabalho muda o tempo todo. <span className="text-[#8B5CF6] drop-shadow-[0_0_15px_rgba(139,92,246,0.3)]">Seu controle não deveria mudar.</span>
-              </h1>
-
-              <p className="text-gray-300 text-base md:text-lg lg:text-xl font-light mb-8 max-w-[95%] leading-relaxed drop-shadow-lg">
-                O KORE Flow acompanha tudo o que acontece durante o seu dia para que nenhuma entrega importante seja esquecida.
-              </p>
-
-              <div className="flex flex-col items-center lg:items-start gap-4">
-                <a
-                  href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro`}
-                  className="group relative overflow-hidden flex items-center gap-3 bg-[#6D28D9] hover:bg-[#5B21B6] text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-medium text-base md:text-lg transition-all duration-300 shadow-[0_4px_20px_rgba(109,40,217,0.4)] hover:shadow-[0_8px_40px_rgba(109,40,217,0.7)] border border-white/5 hover:border-white/20"
-                >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700 ease-in-out"></div>
-                  <span className="relative z-10">Começar gratuitamente</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform relative z-10" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fotografia Original e Simulação 3D */}
+        {/* ============================================================
+      DESKTOP / NOTEBOOK
+      
+      Toda a cena usa a MESMA referência proporcional.
+      Fundo + Copy + Simulador nunca mudam de relação entre si.
+      
+      NÃO usa:
+      - zoom
+      - object-cover
+      - h-screen forçando corte
+  ============================================================ */}
         <div
-          className="relative w-full h-full max-w-[1920px] mx-auto flex items-center z-0 order-2 lg:order-none mt-12 lg:mt-0 lg:absolute lg:inset-0"
-          style={{
-            // Variáveis de ajuste fino para o 3D da tela
-            // Estes valores são iniciais e podem ser ajustados posteriormente
-            '--screen-top': '14.5%',
-            '--screen-left': '24.1%',
-            '--screen-width': '51.5%',
-            '--screen-height': '46.5%',
-            '--screen-scale': '1.0',
-            '--screen-perspective': '1000px',
-            '--screen-rotate-x': '0deg',
-            '--screen-rotate-y': '0deg',
-            '--screen-rotate-z': '0deg',
-            '--screen-radius': '6px',
-          } as React.CSSProperties}
+          className="
+      hidden
+      lg:flex
+      relative
+      w-full
+      justify-center
+      bg-black
+      overflow-hidden
+    "
         >
-          {/* Container interno que acompanha a mesma escala da imagem 
-              No mobile, mostramos a imagem inteira sem zoom para não cortar o laptop e outros elementos do mockup.
-          */}
-          <div className="relative w-full h-auto transition-transform duration-1000">
+
+          {/* ========================================================
+        STAGE
+
+        Essa é a "prancheta" inteira da composição.
+        Ela diminui proporcionalmente conforme a largura disponível.
+    ======================================================== */}
+          <div
+            className="
+        relative
+        w-full
+        max-w-[1920px]
+        aspect-[16/9]
+        mx-auto
+        overflow-hidden
+        [container-type:inline-size]
+      "
+            style={{
+              /*
+               * =====================================================
+               * HERO SIMULATION
+               *
+               * NÃO ALTERAR ESTES VALORES.
+               * Mantidos exatamente como estavam no projeto.
+               * =====================================================
+               */
+              '--screen-top': '14.5%',
+              '--screen-left': '24.1%',
+              '--screen-width': '51.5%',
+              '--screen-height': '46.5%',
+              '--screen-scale': '1.0',
+              '--screen-perspective': '1000px',
+              '--screen-rotate-x': '0deg',
+              '--screen-rotate-y': '0deg',
+              '--screen-rotate-z': '0deg',
+              '--screen-radius': '6px',
+            } as React.CSSProperties}
+          >
+
+            {/* ======================================================
+          BACKGROUND ORIGINAL
+
+          IMPORTANTE:
+          A imagem nunca usa cover.
+          Ela nunca será cortada.
+          Ela define visualmente toda a composição.
+      ====================================================== */}
             <img
               src="/background-hero.png"
               alt="KORE Flow Workspace"
-              className="w-full h-auto object-contain opacity-70 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_98%,transparent_100%)] transition-all duration-1000"
-            />
-            
-            {/* Camada de Blur que afeta APENAS as bordas da imagem, deixando o centro nítido */}
-            <div className="absolute inset-0 z-0 pointer-events-none backdrop-blur-[8px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_40%),linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_98%,black_100%)] lg:[mask-image:linear-gradient(to_right,black_0%,black_15%,transparent_30%,transparent_98%,black_100%)] hidden lg:block"></div>
+              className="
+          absolute
+          inset-0
+          z-0
 
+          w-full
+          h-full
+
+          object-contain
+          object-center
+
+          opacity-70
+
+          [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_93%)]
+        "
+            />
+
+
+            {/* ======================================================
+          BLUR DAS BORDAS
+      ====================================================== */}
+            <div
+              className="
+          absolute
+          inset-0
+          z-[1]
+
+          pointer-events-none
+
+          backdrop-blur-[8px]
+
+          [mask-image:linear-gradient(to_right,black_0%,black_15%,transparent_25%,transparent_95%,black_100%)]
+        "
+            />
+
+
+            {/* ======================================================
+          GRADIENTES PARA ESCONDER AS BORDAS DA IMAGEM
+          (Colocados aqui para ficarem atrás do HeroSimulation)
+      ====================================================== */}
+            <div className="absolute inset-y-0 left-0 z-0 w-[46%] bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 z-0 w-[15%] bg-gradient-to-l from-black via-black/80 to-transparent pointer-events-none" />
+
+            {/* ======================================================
+          HERO SIMULATION
+
+          NÃO ALTERAR.
+          NÃO envolver em scale.
+          NÃO alterar posição.
+          NÃO alterar dimensões.
+      ====================================================== */}
             <HeroSimulation />
+
+
+            {/* ======================================================
+          GLOW
+      ====================================================== */}
+            <div
+              className="
+          absolute
+          z-[2]
+
+          top-1/2
+          right-[4%]
+
+          -translate-y-1/2
+
+          w-[40%]
+          aspect-square
+
+          bg-[#8B5CF6]/15
+          blur-[120px]
+
+          rounded-full
+
+          pointer-events-none
+        "
+            />
+
+
+            {/* ======================================================
+          PARTÍCULAS
+      ====================================================== */}
+            <div
+              className="
+          absolute
+          z-[3]
+
+          top-[30%]
+          left-[60%]
+
+          w-1
+          h-1
+
+          bg-[#8B5CF6]/40
+          rounded-full
+          blur-[1px]
+        "
+            />
+
+            <div
+              className="
+          absolute
+          z-[3]
+
+          top-[60%]
+          left-[80%]
+
+          w-1.5
+          h-1.5
+
+          bg-[#8B5CF6]/30
+          rounded-full
+          blur-[2px]
+        "
+            />
+
+            <div
+              className="
+          absolute
+          z-[3]
+
+          top-[40%]
+          left-[45%]
+
+          w-2
+          h-2
+
+          bg-[#8B5CF6]/20
+          rounded-full
+          blur-[3px]
+        "
+            />
+
+
+
+
+
+            {/* ======================================================
+          COPY
+
+          IMPORTANTE:
+          A posição é relativa à MESMA composição do monitor.
+          Não usamos px para posicionar o bloco.
+
+          Isso preserva:
+          
+          COPY ← distância → MONITOR
+          
+          em qualquer resolução.
+      ====================================================== */}
+            <div
+              className="
+          absolute
+          z-10
+
+          left-[12.5%]
+          top-[50%]
+
+          -translate-y-1/2
+
+          w-[25.5%]
+
+          flex
+          flex-col
+          items-start
+          text-left
+        "
+            >
+
+              {/* H1 */}
+              <h1
+                className="
+            text-white
+            font-bold
+
+            text-[clamp(2rem,2.8cqw,3.5rem)]
+
+            leading-[1.15]
+            tracking-tight
+
+            mb-[1.25cqw]
+
+            drop-shadow-2xl
+          "
+              >
+                Seu trabalho muda o tempo todo.{' '}
+
+                <span
+                  className="
+              text-[#8B5CF6]
+
+              drop-shadow-[0_0_15px_rgba(139,92,246,0.3)]
+            "
+                >
+                  Seu controle não deveria mudar.
+                </span>
+              </h1>
+
+
+              {/* DESCRIÇÃO */}
+              <p
+                className="
+            text-gray-300
+
+            text-[clamp(0.9rem,1.02cqw,1.25rem)]
+
+            font-light
+
+            leading-relaxed
+
+            mb-[1.75cqw]
+
+            w-[95%]
+
+            drop-shadow-lg
+          "
+              >
+                O KORE Flow acompanha tudo o que acontece durante o seu dia
+                para que nenhuma entrega importante seja esquecida.
+              </p>
+
+
+              {/* CTA */}
+              <a
+                href={`${getAppUrl()}/cadastro`}
+                className="
+            group
+
+            relative
+            overflow-hidden
+
+            flex
+            items-center
+            justify-center
+
+            gap-[0.7cqw]
+
+            bg-[#6D28D9]
+            hover:bg-[#5B21B6]
+
+            text-white
+
+            px-[1.55cqw]
+            py-[0.8cqw]
+
+            rounded-xl
+
+            font-medium
+
+            text-[clamp(0.85rem,0.95cqw,1.1rem)]
+
+            transition-all
+            duration-300
+
+            shadow-[0_4px_20px_rgba(109,40,217,0.4)]
+
+            hover:shadow-[0_8px_40px_rgba(109,40,217,0.7)]
+
+            border
+            border-white/5
+
+            hover:border-white/20
+          "
+              >
+
+                {/* Reflexo */}
+                <div
+                  className="
+              absolute
+              inset-0
+
+              w-full
+              h-full
+
+              bg-gradient-to-r
+              from-transparent
+              via-white/10
+              to-transparent
+
+              -translate-x-[150%]
+
+              group-hover:translate-x-[150%]
+
+              transition-transform
+              duration-700
+              ease-in-out
+            "
+                />
+
+                <span className="relative z-10">
+                  Começar gratuitamente
+                </span>
+
+                <ArrowRight
+                  className="
+              relative
+              z-10
+
+              w-5
+              h-5
+
+              group-hover:translate-x-1
+
+              transition-transform
+            "
+                />
+
+              </a>
+
+            </div>
+
           </div>
+
+        </div>
+
+
+        {/* ============================================================
+      MOBILE / TABLET
+
+      Continua separado porque celular precisa de outro fluxo.
+      HeroSimulation continua intacto.
+  ============================================================ */}
+        <div
+          className="
+      lg:hidden
+
+      relative
+
+      flex
+      flex-col
+
+      pt-28
+
+      bg-black
+
+      overflow-hidden
+    "
+        >
+
+          {/* Glow Mobile */}
+          <div
+            className="
+        absolute
+
+        top-[10%]
+        left-1/2
+
+        -translate-x-1/2
+
+        w-[120vw]
+        h-[120vw]
+
+        bg-[#8B5CF6]/20
+
+        blur-[120px]
+
+        rounded-full
+
+        pointer-events-none
+      "
+          />
+
+
+          {/* Copy Mobile */}
+          <div
+            className="
+        relative
+        z-10
+
+        px-6
+
+        mb-10
+      "
+          >
+
+            <h1
+              className="
+          text-white
+
+          font-bold
+
+          text-4xl
+          sm:text-5xl
+
+          leading-[1.15]
+
+          tracking-tight
+
+          mb-5
+        "
+            >
+              Seu trabalho muda o tempo todo.{' '}
+
+              <span className="text-[#8B5CF6]">
+                Seu controle não deveria mudar.
+              </span>
+            </h1>
+
+
+            <p
+              className="
+          text-gray-300
+
+          text-base
+          sm:text-lg
+
+          font-light
+
+          leading-relaxed
+
+          mb-8
+
+          max-w-xl
+        "
+            >
+              O KORE Flow acompanha tudo o que acontece durante o seu dia
+              para que nenhuma entrega importante seja esquecida.
+            </p>
+
+
+            <a
+              href={`${getAppUrl()}/cadastro`}
+              className="
+          inline-flex
+
+          items-center
+
+          gap-3
+
+          bg-[#6D28D9]
+
+          hover:bg-[#5B21B6]
+
+          text-white
+
+          px-6
+          py-3.5
+
+          rounded-xl
+
+          font-medium
+
+          transition-all
+
+          shadow-[0_4px_20px_rgba(109,40,217,0.4)]
+        "
+            >
+              Começar gratuitamente
+
+              <ArrowRight className="w-5 h-5" />
+            </a>
+
+          </div>
+
+
+          {/* ========================================================
+        MOCKUP MOBILE
+    ======================================================== */}
+          <div
+            className="
+        relative
+        w-full
+      "
+            style={{
+              /*
+               * NÃO ALTERAR.
+               */
+              '--screen-top': '14.5%',
+              '--screen-left': '24.1%',
+              '--screen-width': '51.5%',
+              '--screen-height': '46.5%',
+              '--screen-scale': '1.0',
+              '--screen-perspective': '1000px',
+              '--screen-rotate-x': '0deg',
+              '--screen-rotate-y': '0deg',
+              '--screen-rotate-z': '0deg',
+              '--screen-radius': '6px',
+            } as React.CSSProperties}
+          >
+
+            <img
+              src="/background-hero.png"
+              alt="KORE Flow Workspace"
+              className="
+          relative
+          z-0
+
+          w-full
+          h-auto
+
+          object-contain
+
+          opacity-70
+
+          [mask-image:linear-gradient(to_bottom,transparent_0%,black_20%,black_100%)]
+        "
+            />
+
+
+            {/* NÃO ALTERAR */}
+            <HeroSimulation />
+
+          </div>
+
         </div>
 
       </section>
@@ -491,7 +999,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Calendário & Etiquetas</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Acesso Web</span></li>
               </ul>
-              <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
+              <a href={`${getAppUrl()}/cadastro`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
                 Começar Agora
               </a>
             </div>
@@ -515,7 +1023,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Timer Inteligente</span></li>
               </ul>
               <a
-                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
+                href={`${getAppUrl()}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Assinar Mensal
@@ -543,7 +1051,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Suporte Prioritário</span></li>
               </ul>
               <a
-                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
+                href={`${getAppUrl()}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
                 className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Assinar Anual

@@ -44,7 +44,38 @@ export function HeroSimulation() {
       const virtualHeight = 800;
 
       // Calcular coordenadas absolutas dos 4 cantos baseados nas porcentagens
-      const activeCorners = DEBUG_MODE ? corners : INITIAL_CORNERS;
+      let activeCorners = DEBUG_MODE ? corners : INITIAL_CORNERS;
+
+      // Compensação automática caso a imagem 3:2 sofra letterbox por object-contain no container pai
+      const parentAspect = w / h;
+      const imageAspect = 1536 / 1024; // Proporção 3:2 da imagem original background-hero.png
+
+      if (Math.abs(parentAspect - imageAspect) > 0.01) {
+        if (parentAspect > imageAspect) {
+          // Letterbox nas laterais (ex: Desktop 16:9)
+          const imageWidthPercent = imageAspect / parentAspect;
+          const offsetXPercent = ((1 - imageWidthPercent) / 2) * 100;
+
+          activeCorners = {
+            topLeft: { x: offsetXPercent + activeCorners.topLeft.x * imageWidthPercent, y: activeCorners.topLeft.y },
+            topRight: { x: offsetXPercent + activeCorners.topRight.x * imageWidthPercent, y: activeCorners.topRight.y },
+            bottomRight: { x: offsetXPercent + activeCorners.bottomRight.x * imageWidthPercent, y: activeCorners.bottomRight.y },
+            bottomLeft: { x: offsetXPercent + activeCorners.bottomLeft.x * imageWidthPercent, y: activeCorners.bottomLeft.y },
+          };
+        } else {
+          // Letterbox no topo/base (telas muito altas)
+          const imageHeightPercent = parentAspect / imageAspect;
+          const offsetYPercent = ((1 - imageHeightPercent) / 2) * 100;
+
+          activeCorners = {
+            topLeft: { x: activeCorners.topLeft.x, y: offsetYPercent + activeCorners.topLeft.y * imageHeightPercent },
+            topRight: { x: activeCorners.topRight.x, y: offsetYPercent + activeCorners.topRight.y * imageHeightPercent },
+            bottomRight: { x: activeCorners.bottomRight.x, y: offsetYPercent + activeCorners.bottomRight.y * imageHeightPercent },
+            bottomLeft: { x: activeCorners.bottomLeft.x, y: offsetYPercent + activeCorners.bottomLeft.y * imageHeightPercent },
+          };
+        }
+      }
+
       const p1 = { x: (activeCorners.topLeft.x / 100) * w, y: (activeCorners.topLeft.y / 100) * h };
       const p2 = { x: (activeCorners.topRight.x / 100) * w, y: (activeCorners.topRight.y / 100) * h };
       const p3 = { x: (activeCorners.bottomRight.x / 100) * w, y: (activeCorners.bottomRight.y / 100) * h };
@@ -56,7 +87,7 @@ export function HeroSimulation() {
 
     // Usar ResizeObserver para ser resiliente ao carregamento da imagem
     let resizeObserver: ResizeObserver | null = null;
-    
+
     if (containerRef.current && containerRef.current.parentElement) {
       resizeObserver = new ResizeObserver(() => {
         updateMatrix();
@@ -118,7 +149,7 @@ export function HeroSimulation() {
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 Ajuste de Perspectiva
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   navigator.clipboard.writeText(JSON.stringify(corners, null, 2));
                   alert("Configuração JSON copiada para a área de transferência!");
@@ -128,7 +159,7 @@ export function HeroSimulation() {
                 Copiar JSON
               </button>
             </div>
-            
+
             <p className="text-white/60 text-[10px] leading-tight mb-2">
               Ajuste as posições X e Y (em %) de cada canto para encaixar perfeitamente no monitor do mockup.
             </p>
@@ -136,23 +167,23 @@ export function HeroSimulation() {
             {(Object.keys(corners) as (keyof typeof corners)[]).map(key => (
               <div key={key} className="flex flex-col gap-2 border-b border-white/10 pb-3 last:border-0 last:pb-0">
                 <span className="font-semibold text-indigo-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                
+
                 {/* Eixo X */}
                 <div className="flex gap-2 items-center bg-white/5 p-1.5 rounded">
                   <span className="w-4 font-bold text-white/50">X</span>
-                  <input 
-                    type="range" min="0" max="100" step="0.1" 
-                    value={corners[key as keyof typeof corners].x} 
+                  <input
+                    type="range" min="0" max="100" step="0.1"
+                    value={corners[key as keyof typeof corners].x}
                     onChange={e => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], x: parseFloat(e.target.value) } }))}
                     className="flex-1 accent-indigo-500 h-1"
                   />
                   <span className="w-10 text-right font-mono text-white/80">{corners[key as keyof typeof corners].x.toFixed(1)}</span>
                   <div className="flex gap-1">
-                    <button 
+                    <button
                       onClick={() => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], x: prev[key as keyof typeof corners].x - 0.1 } }))}
                       className="bg-white/10 w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 hover:text-indigo-300 transition-colors"
                     >-</button>
-                    <button 
+                    <button
                       onClick={() => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], x: prev[key as keyof typeof corners].x + 0.1 } }))}
                       className="bg-white/10 w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 hover:text-indigo-300 transition-colors"
                     >+</button>
@@ -162,19 +193,19 @@ export function HeroSimulation() {
                 {/* Eixo Y */}
                 <div className="flex gap-2 items-center bg-white/5 p-1.5 rounded">
                   <span className="w-4 font-bold text-white/50">Y</span>
-                  <input 
-                    type="range" min="0" max="100" step="0.1" 
-                    value={corners[key as keyof typeof corners].y} 
+                  <input
+                    type="range" min="0" max="100" step="0.1"
+                    value={corners[key as keyof typeof corners].y}
                     onChange={e => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], y: parseFloat(e.target.value) } }))}
                     className="flex-1 accent-indigo-500 h-1"
                   />
                   <span className="w-10 text-right font-mono text-white/80">{corners[key as keyof typeof corners].y.toFixed(1)}</span>
                   <div className="flex gap-1">
-                    <button 
+                    <button
                       onClick={() => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], y: prev[key as keyof typeof corners].y - 0.1 } }))}
                       className="bg-white/10 w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 hover:text-indigo-300 transition-colors"
                     >-</button>
-                    <button 
+                    <button
                       onClick={() => setCorners(prev => ({ ...prev, [key]: { ...prev[key as keyof typeof corners], y: prev[key as keyof typeof corners].y + 0.1 } }))}
                       className="bg-white/10 w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 hover:text-indigo-300 transition-colors"
                     >+</button>

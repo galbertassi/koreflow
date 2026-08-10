@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://flow.koredigital.com.br"),
-  title: "KORE FLOW | O gerenciador de tarefas inteligente",
-  description: "Organize suas demandas e comprove o seu esforço com o KORE FLOW. A plataforma ideal para gestão inteligente de projetos.",
+  title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
+  description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
   keywords: ["gestão de tarefas", "marketing", "gerenciador de projetos", "kore flow", "kore digital", "produtividade", "organização", "fluxo de trabalho"],
   authors: [{ name: "KORE Digital" }],
   alternates: {
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    title: "KORE FLOW | O gerenciador de tarefas inteligente",
-    description: "Organize suas demandas e comprove o seu esforço com o KORE FLOW.",
-    siteName: "KORE FLOW",
+    title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
+    description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
+    siteName: "KORE Flow",
   },
   robots: {
     index: true,

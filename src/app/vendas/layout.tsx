@@ -3,22 +3,22 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://flow.koredigital.com.br"),
-  title: "KORE Flow",
-  description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+  title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
+  description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
   alternates: {
     canonical: "https://flow.koredigital.com.br",
   },
   openGraph: {
     type: "website",
     url: "https://flow.koredigital.com.br",
-    title: "KORE Flow",
-    description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+    title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
+    description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
     siteName: "KORE Flow",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KORE Flow",
-    description: "Plataforma para organizar demandas, prioridades, interrupções e acompanhar onde o tempo foi investido.",
+    title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
+    description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
   },
 };
 
