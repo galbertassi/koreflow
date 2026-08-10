@@ -201,7 +201,7 @@ export default function LoginPage({
         </div>
 
         {/* LOGO DA KORE ABAIXO */}
-        <div className="mt-20 flex flex-col items-center justify-center">
+        <div className="mt-20 flex flex-col items-center justify-center gap-2">
           <Image
             src="/logo-white2.svg"
             alt="KORE"
@@ -209,7 +209,7 @@ export default function LoginPage({
             height={55}
             className="opacity-60 hover:opacity-100 transition-opacity duration-300 drop-shadow-md"
           />
-          <a href="https://www.koredigital.com.br" target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-normal text-[#888888] hover:text-white transition-colors tracking-widest -mt-10 relative z-10">
+          <a href="https://www.koredigital.com.br" target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-normal text-[#888888] hover:text-white transition-colors tracking-widest relative z-10">
             www.koredigital.com.br
           </a>
         </div>

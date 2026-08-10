@@ -63,6 +63,12 @@ export default function DashboardPage() {
     <div className="flex flex-col min-h-full space-y-6 max-w-[1400px] mx-auto pb-10">
       
       {/* Removido o Header daqui, pois ja esta no layout.tsx (Header.tsx) */}
+      
+      <div className="flex items-center justify-end px-2">
+        <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+          <PlusCircle className="w-4 h-4" /> Subir Plano
+        </button>
+      </div>
 
       {/* Cards - 6 columns */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-2">
@@ -142,9 +148,9 @@ export default function DashboardPage() {
       {/* Middle Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Fluxo de Execução (Pie Chart) */}
+        {/* Plano de Execução (Pie Chart) */}
         <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
-          <h3 className="text-base font-semibold text-foreground mb-6">Fluxo de Execução</h3>
+          <h3 className="text-base font-semibold text-foreground mb-6">Plano de Execução</h3>
           <div className="flex-1 flex items-center justify-center gap-8">
             <div className="relative w-40 h-40">
               <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90 transform">
@@ -185,9 +191,9 @@ export default function DashboardPage() {
           <button className="text-xs font-medium text-muted-foreground text-left mt-4 hover:text-foreground">Ver detalhes {'>'}</button>
         </div>
 
-        {/* Distribuição de Atividades */}
+        {/* Declaração de Atividades */}
         <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
-          <h3 className="text-base font-semibold text-foreground mb-6">Distribuição de Atividades</h3>
+          <h3 className="text-base font-semibold text-foreground mb-6">Declaração de Atividades</h3>
           <div className="flex-1 flex flex-col justify-center gap-4">
             {[
               { label: "Planejamento", val: catPlanejamento },
@@ -208,10 +214,10 @@ export default function DashboardPage() {
           <button className="text-xs font-medium text-muted-foreground text-left mt-4 hover:text-foreground">Ver detalhes {'>'}</button>
         </div>
 
-        {/* Demandas Extras */}
+        {/* Mural das Agências */}
         <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-semibold text-foreground">Demandas Extras</h3>
+            <h3 className="text-base font-semibold text-foreground">Mural das Agências</h3>
             <button className="text-xs font-medium text-muted-foreground flex items-center gap-1 hover:text-foreground">
               Ver todas <ChevronDown className="w-3 h-3" />
             </button>

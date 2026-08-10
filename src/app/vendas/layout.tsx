@@ -46,7 +46,7 @@ export default function VendasLayout({
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-[#8B5CF6]/30">
       {/* Navbar Transparente / Dark Premium */}
-      <nav className="fixed top-0 w-full z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-white/[0.03] shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300">
+      <nav className="fixed top-0 w-full z-50 bg-black border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
           <a href="/vendas" className="flex items-center">
             <Image src="/flow-logo.svg" alt="KORE FLOW" width={240} height={60} className="h-[52px] w-auto" />
@@ -59,7 +59,7 @@ export default function VendasLayout({
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="https://app.koredigital.com.br/login" className="text-[13px] font-bold text-white uppercase tracking-widest hover:text-[#8B5CF6] transition-colors">
+            <a href="https://app.koredigital.com.br" className="text-[13px] font-bold text-white uppercase tracking-widest hover:text-[#8B5CF6] transition-colors">
               Login
             </a>
           </div>
