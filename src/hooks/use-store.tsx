@@ -1,23 +1,36 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { PLANS, PlanType } from "@/config/plans";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 
 // --- Types ---
-export type ExecucaoStatus = "Aguardando" | "Em producao" | "Revisao" | "Concluida" | "Em Risco";
+export type ExecucaoStatus = string;
 
-export const STATUS_COLORS: Record<ExecucaoStatus, string> = {
-  "Aguardando": "bg-amber-400/10 text-amber-500 border-amber-400/20",
-  "Em producao": "bg-blue-400/10 text-blue-500 border-blue-400/20",
-  "Revisao": "bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20",
-  "Concluida": "bg-emerald-400/10 text-emerald-500 border-emerald-400/20",
-  "Em Risco": "bg-red-400/10 text-red-500 border-red-400/20",
-};
+export interface Etiqueta {
+  nome: string;
+  cor: string;
+}
 
-export const STATUS_PROGRESS: Record<ExecucaoStatus, number> = {
+export const DEFAULT_ETIQUETAS: Etiqueta[] = [
+  { nome: "Pendente", cor: "bg-slate-400/10 text-slate-500 border-slate-400/20" },
+  { nome: "Dar in├¡cio", cor: "bg-indigo-400/10 text-indigo-500 border-indigo-400/20" },
+  { nome: "Aguardando", cor: "bg-amber-400/10 text-amber-500 border-amber-400/20" },
+  { nome: "Em producao", cor: "bg-blue-400/10 text-blue-500 border-blue-400/20" },
+  { nome: "Aguardando Aprova├º├úo", cor: "bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20" },
+  { nome: "Concluida", cor: "bg-emerald-400/10 text-emerald-500 border-emerald-400/20" },
+  { nome: "Em Risco", cor: "bg-red-400/10 text-red-500 border-red-400/20" },
+];
+
+export const STATUS_COLORS: Record<string, string> = DEFAULT_ETIQUETAS.reduce((acc, eq) => ({ ...acc, [eq.nome]: eq.cor }), {});
+
+export const STATUS_PROGRESS: Record<string, number> = {
+  "Pendente": 0,
+  "Dar in├¡cio": 10,
   "Aguardando": 0,
   "Em producao": 30,
-  "Revisao": 80,
+  "Aguardando Aprova├º├úo": 80,
   "Concluida": 100,
   "Em Risco": 50,
 };
@@ -32,7 +45,8 @@ export interface Execucao {
   data?: string;
   status: ExecucaoStatus | string;
   progresso: number;
-  tipo_planejamento?: string;
+  tipoPlanejamento?: string;
+  observacao?: string;
   criadoEm: string;
 }
 
@@ -41,33 +55,36 @@ export interface Post {
   titulo: string;
   descricao?: string;
   tipo?: string;
-  status: string;
+  status: "A fazer" | "Fazendo" | "Aprovacao" | "Feito" | "Ideia" | "Producao" | "Aprovado" | "Publicado";
   criadoEm: string;
+  dataEntrega?: string;
+  responsavel?: string;
 }
 
 export interface Campanha {
   id: string;
   nome: string;
   descricao?: string;
-  status: string;
+  status?: string;
   posts: Post[];
   criadoEm: string;
+  dataInicio?: string;
+  dataFim?: string;
 }
 
 export interface Inspiracao {
   id: string;
   titulo: string;
-  url?: string;
-  nota?: string;
+  url: string;
+  descricao: string;
   criadoEm: string;
 }
 
 export interface Projeto {
   id: string;
   nome: string;
-  cliente: string;
-  inicio: string;
-  fim: string;
+  cliente?: string;
+  status: "Ativo" | "Pausado" | "Concluido";
   campanhas: Campanha[];
   inspiracoes: Inspiracao[];
   criadoEm: string;
@@ -83,7 +100,6 @@ export interface MetaUpdate {
 export interface Meta {
   id: string;
   titulo: string;
-  valorAlvo?: string;
   progresso: number;
   prazo: string;
   updates: MetaUpdate[];
@@ -115,6 +131,7 @@ export interface Configuracoes {
     chaveApi: string;
     tom: string;
   };
+  etiquetas: Etiqueta[];
 }
 
 export interface PostDia {
@@ -122,10 +139,9 @@ export interface PostDia {
   titulo: string;
   descricao: string;
   tipo: "Post" | "Reels" | "Story" | "Carrossel" | "Outro";
-  status: "Planejado" | "Producao" | "Em analise para aprovação" | "Aprovado" | "Publicado" | "Pausado";
+  status: "Planejado" | "Producao" | "Em analise para aprova├º├úo" | "Aprovado" | "Publicado" | "Pausado";
   link?: string;
   imagemUrl?: string;
-  observacao?: string;
 }
 
 export interface ClientePlano {
@@ -171,13 +187,22 @@ interface StoreContextType {
   updatePostDia: (planejamentoId: string, clienteId: string, data: string, postId: string, changes: Partial<PostDia>) => void;
   deletePostDia: (planejamentoId: string, clienteId: string, data: string, postId: string) => void;
   deletePlanejamento: (id: string) => void;
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
+  companyPlan: PlanType;
+  companyUsage: { demandsCreated: number };
+  openUpgradeModal: () => void;
 }
 
-const StoreContext = createContext<StoreContextType | undefined>(undefined);
+export const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   const [execucoes, setExecucoes] = useState<Execucao[]>([]);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
@@ -190,14 +215,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     agencia: "Carregando...",
     tema: "Original",
     notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false },
-    ia: { chaveApi: "", tom: "Profissional e direto" }
+    ia: { chaveApi: "", tom: "Profissional e direto" },
+    etiquetas: DEFAULT_ETIQUETAS
   });
+
+  const [companyPlan, setCompanyPlan] = useState<PlanType>("Free");
+  const [companyUsage, setCompanyUsage] = useState({ demandsCreated: 0 });
+  const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const openUpgradeModal = () => setUpgradeModalOpen(true);
 
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // Fallback to local storage if not logged in via Supabase
         const saved = localStorage.getItem("koreflow_data");
         if (saved) {
           try {
@@ -214,6 +244,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } else {
           setConfiguracoes(prev => ({ ...prev, nome: "Visitante", agencia: "Visitante" }));
         }
+        
+        const usageData = JSON.parse(localStorage.getItem("koreflow_usage") || '{"demandsCreated": 0}');
+        setCompanyUsage(usageData);
         return;
       }
       
@@ -224,39 +257,72 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (configData) {
           setConfiguracoes({
             nome: configData.nome, email: configData.email, agencia: configData.agencia,
-            tema: configData.tema as any, foto: configData.foto, notificacoes: configData.notificacoes, ia: configData.ia
+            tema: configData.tema as any, foto: configData.foto, notificacoes: configData.notificacoes, ia: configData.ia,
+            etiquetas: configData.etiquetas || DEFAULT_ETIQUETAS
           });
         } else {
-          const defaultSettings = {
+        const { data: defaultSettings, error: insertError } = await supabase.from('kore_configuracoes').insert({
             user_id: user.id,
             nome: user.user_metadata?.full_name || "Seu Nome",
             email: user.email || "",
-            agencia: "Sua Agência",
+            agencia: "Sua Ag├¬ncia",
             notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false },
-            ia: { chaveApi: "", tom: "Profissional e direto" }
-          };
-          const { error: insertError } = await supabase.from('kore_configuracoes').insert(defaultSettings);
-          // Mesmo se falhar (ex: tabelas não criadas ainda), libera o acesso no front-end:
-          setConfiguracoes({
-            nome: defaultSettings.nome, email: defaultSettings.email, agencia: defaultSettings.agencia,
-            tema: "Original", notificacoes: defaultSettings.notificacoes, ia: defaultSettings.ia
-          });
+            ia: { chaveApi: "", tom: "Profissional e direto" },
+            etiquetas: DEFAULT_ETIQUETAS
+          }).select().single();
+          
+          if (defaultSettings) {
+            setConfiguracoes({
+              nome: defaultSettings.nome, email: defaultSettings.email, agencia: defaultSettings.agencia,
+              tema: "Original", notificacoes: defaultSettings.notificacoes, ia: defaultSettings.ia, etiquetas: defaultSettings.etiquetas
+            });
+          }
           if (insertError) {
-             console.error("Failed to insert default settings (tabelas não existem?)", insertError);
+             console.error("Failed to insert default settings (tabelas n├úo existem?)", insertError);
+          }
+        }
+
+        let { data: companyUser } = await supabase.from('kore_company_users').select('company_id').eq('user_id', user.id).maybeSingle();
+        
+        if (!companyUser) {
+          const fullName = user.user_metadata?.full_name || user.email || "Usu├írio";
+          const { error: rpcError } = await supabase.rpc("ensure_my_personal_workspace", { p_full_name: fullName });
+          if (!rpcError) {
+            const { data: retryUser } = await supabase.from('kore_company_users').select('company_id').eq('user_id', user.id).maybeSingle();
+            companyUser = retryUser;
+          }
+        }
+
+        if (companyUser) {
+          setCompanyId(companyUser.company_id);
+          const { data: company } = await supabase.from('kore_companies').select('plan, workspace_type, trial_ends_at').eq('id', companyUser.company_id).maybeSingle();
+          if (company) {
+             setCompanyPlan((company.plan as PlanType) || "Free");
+          }
+
+          const monthYear = new Date().toISOString().slice(0, 7);
+          const { data: usage } = await supabase.from('kore_company_usage')
+            .select('demands_created')
+            .eq('company_id', companyUser.company_id)
+            .eq('month_year', monthYear)
+            .maybeSingle();
+          
+          if (usage) {
+            setCompanyUsage({ demandsCreated: usage.demands_created });
           }
         }
 
         const { data: execData } = await supabase.from('kore_execucoes').select('*').eq('user_id', user.id).order('criado_em', { ascending: false });
         if (execData) {
           setExecucoes(execData.map(e => ({
-            id: e.id, titulo: e.titulo, projetoId: e.projeto_id, categoria: e.categoria, entrega: e.entrega, prioridade: e.prioridade, tipo_planejamento: e.tipo_planejamento, data: e.data, status: e.status as any, progresso: e.progresso, criadoEm: e.criado_em
+            id: e.id, titulo: e.titulo, projetoId: e.projeto_id, categoria: e.categoria, entrega: e.entrega, prioridade: e.prioridade, tipoPlanejamento: e.tipo_planejamento, data: e.data, status: e.status as any, progresso: e.progresso, observacao: e.observacao, criadoEm: e.criado_em
           })));
         }
 
         const { data: projData } = await supabase.from('kore_projetos').select('*').eq('user_id', user.id).order('criado_em', { ascending: false });
         if (projData) {
           setProjetos(projData.map(p => ({
-            id: p.id, nome: p.nome, cliente: p.cliente, inicio: p.inicio, fim: p.fim, campanhas: p.campanhas, inspiracoes: p.inspiracoes, criadoEm: p.criado_em
+            id: p.id, nome: p.nome, cliente: p.cliente, status: p.status as any, campanhas: p.campanhas, inspiracoes: p.inspiracoes, criadoEm: p.criado_em
           })));
         }
 
@@ -289,9 +355,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     loadData();
   }, [supabase]);
 
-  // Sync to localStorage as fallback
   const saveStateLocal = (newState: any) => {
-    if (userId) return; // Only use localstorage if NOT logged into supabase
+    if (userId) return;
     const current = JSON.parse(localStorage.getItem("koreflow_data") || "{}");
     localStorage.setItem("koreflow_data", JSON.stringify({ ...current, ...newState }));
   };
@@ -309,7 +374,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         tema: newConfig.tema, 
         foto: newConfig.foto, 
         notificacoes: newConfig.notificacoes, 
-        ia: newConfig.ia 
+        ia: newConfig.ia,
+        etiquetas: newConfig.etiquetas
       }, { onConflict: 'user_id' });
       if (error) {
         console.error("UPSERT ERROR:", error);
@@ -337,23 +403,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const addExecucao = async (e: Omit<Execucao, "id" | "criadoEm" | "status" | "progresso">) => {
+    if (!PLANS[companyPlan].hasUnlimitedDemands && companyUsage.demandsCreated >= PLANS[companyPlan].maxDemandsPerMonth) {
+      openUpgradeModal();
+      return;
+    }
+
     const newEx = { ...e, id: crypto.randomUUID(), status: "Pendente" as const, progresso: 0, criadoEm: new Date().toISOString() };
     setExecucoes(prev => [...prev, newEx]);
     
+    const nextUsage = { ...companyUsage, demandsCreated: companyUsage.demandsCreated + 1 };
+    setCompanyUsage(nextUsage);
+    
     if (userId) {
       await supabase.from('kore_execucoes').insert({
-        id: newEx.id, user_id: userId, titulo: newEx.titulo, projeto_id: newEx.projetoId, categoria: newEx.categoria, entrega: newEx.entrega, prioridade: newEx.prioridade, tipo_planejamento: newEx.tipo_planejamento, data: newEx.data, status: newEx.status, progresso: newEx.progresso, criado_em: newEx.criadoEm
+        id: newEx.id, user_id: userId, titulo: newEx.titulo, projeto_id: newEx.projetoId, categoria: newEx.categoria, entrega: newEx.entrega, prioridade: newEx.prioridade, tipo_planejamento: newEx.tipoPlanejamento, data: newEx.data, status: newEx.status, progresso: newEx.progresso, criado_em: newEx.criadoEm, observacao: newEx.observacao
       });
-    } else saveStateLocal({ execucoes: [...execucoes, newEx] });
+    } else {
+      saveStateLocal({ execucoes: [...execucoes, newEx] });
+      localStorage.setItem("koreflow_usage", JSON.stringify(nextUsage));
+    }
   };
 
   const updateExecucao = async (id: string, changes: Partial<Execucao>) => {
     setExecucoes(prev => prev.map(e => e.id === id ? { ...e, ...changes } : e));
     if (userId) {
       const dbChanges: any = { ...changes };
-      if (changes.projetoId) dbChanges.projeto_id = changes.projetoId;
-      delete dbChanges.projetoId;
-      await supabase.from('kore_execucoes').update(dbChanges).eq('id', id);
+      if (changes.projetoId !== undefined) {
+        dbChanges.projeto_id = changes.projetoId;
+        delete dbChanges.projetoId;
+      }
+      if (changes.tipoPlanejamento !== undefined) {
+        dbChanges.tipo_planejamento = changes.tipoPlanejamento;
+        delete dbChanges.tipoPlanejamento;
+      }
+      const { error } = await supabase.from('kore_execucoes').update(dbChanges).eq('id', id);
+      if (error) console.error("Error updating execucao:", error);
     } else saveStateLocal({ execucoes: execucoes.map(e => e.id === id ? { ...e, ...changes } : e) });
   };
 
@@ -363,12 +447,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     else saveStateLocal({ execucoes: execucoes.filter(e => e.id !== id) });
   };
 
+
   const addProjeto = async (p: Omit<Projeto, "id" | "criadoEm" | "campanhas" | "inspiracoes">) => {
     const newProj = { ...p, id: crypto.randomUUID(), campanhas: [], inspiracoes: [], criadoEm: new Date().toISOString() };
     setProjetos(prev => [...prev, newProj]);
     if (userId) {
       await supabase.from('kore_projetos').insert({
-        id: newProj.id, user_id: userId, nome: newProj.nome, cliente: newProj.cliente, inicio: newProj.inicio, fim: newProj.fim, campanhas: [], inspiracoes: [], criado_em: newProj.criadoEm
+        id: newProj.id, user_id: userId, nome: newProj.nome, cliente: newProj.cliente, status: newProj.status, campanhas: [], inspiracoes: [], criado_em: newProj.criadoEm
       });
     } else saveStateLocal({ projetos: [...projetos, newProj] });
   };
@@ -536,21 +621,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addExecucao, updateExecucao, deleteExecucao,
       addProjeto, addCampanha, addPostCampanha, updatePostCampanha, addInspiracao, deleteProjeto,
       addMeta, updateMetaProgresso, deleteMeta,
-      addPlanejamento, addClientePlano, addPostDia, updatePostDia, deletePostDia, deletePlanejamento
+      addPlanejamento, addClientePlano, addPostDia, updatePostDia, deletePostDia, deletePlanejamento,
+      isSidebarOpen, toggleSidebar,
+      companyPlan, companyUsage, openUpgradeModal
     }}>
       {children}
+      <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </StoreContext.Provider>
   );
 }
 
 export function useStore() {
   const context = useContext(StoreContext);
-  if (!context) throw new Error("useStore must be used within StoreProvider");
+  if (context === undefined) {
+    throw new Error("useStore must be used within a StoreProvider");
+  }
   return context;
 }
-
-
-
-
-
-
