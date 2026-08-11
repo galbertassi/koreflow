@@ -10,11 +10,35 @@ import {
   AlarmClock,
   Search,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  Play,
+  Pause
 } from "lucide-react";
+import { useDemands, DemandRecord } from "@/hooks/use-demands";
+import { useDemandTimer } from "@/hooks/use-demand-timer";
+import { playDemand, pauseDemand, completeDemand } from "./demandas/actions";
 
 export default function DashboardPage() {
   const { execucoes, configuracoes } = useStore();
+  const { demands, optimisticUpdate } = useDemands();
+  const { activeTimer, getDisplayTime } = useDemandTimer();
+
+  const activeDemand = demands.find(d => d.status === "IN_PROGRESS") || null;
+
+  const handlePlay = async (demand: DemandRecord) => {
+    optimisticUpdate(demand.id, { status: "IN_PROGRESS" });
+    await playDemand(demand.id);
+  };
+
+  const handlePause = async (demand: DemandRecord) => {
+    optimisticUpdate(demand.id, { status: "PAUSED" });
+    await pauseDemand(demand.id);
+  };
+
+  const handleComplete = async (demand: DemandRecord) => {
+    optimisticUpdate(demand.id, { status: "COMPLETED" });
+    await completeDemand(demand.id);
+  };
 
   const total = execucoes.length || 1; 
   const entregues = execucoes.filter(e => e.status === "Concluida").length;
@@ -241,6 +265,34 @@ export default function DashboardPage() {
 
       </div>
 
+      {activeDemand && (
+        <div className="bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-sm">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+          <div className="flex items-center gap-4 w-full">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Play className="w-5 h-5 text-emerald-600 fill-emerald-600 ml-0.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-emerald-600 mb-1 uppercase tracking-wider">Demanda em Andamento</p>
+              <h3 className="text-lg font-semibold text-foreground truncate">{activeDemand.title}</h3>
+              <p className="text-sm text-muted-foreground truncate">{activeDemand.client_name || "Sem cliente"} • {activeDemand.category_name || "Sem categoria"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+            <div className="flex flex-col items-end mr-4">
+              <span className="text-2xl font-bold text-foreground font-mono">{getDisplayTime(activeDemand.id, activeDemand.spent_time_seconds)}</span>
+              <span className="text-xs text-muted-foreground">Tempo investido</span>
+            </div>
+            <button onClick={() => handlePause(activeDemand)} className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm">
+              <Pause className="w-4 h-4" />
+            </button>
+            <button onClick={() => handleComplete(activeDemand)} className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm">
+              <CheckCircle2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Central de Atividades Table */}
       <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden flex flex-col">
         <div className="p-6 border-b border-border/50 flex items-center justify-between">
@@ -271,17 +323,79 @@ export default function DashboardPage() {
                 <th className="py-3 px-4 whitespace-nowrap">Responsável</th>
                 <th className="py-3 px-4 whitespace-nowrap text-center">Status</th>
                 <th className="py-3 px-6 whitespace-nowrap text-right">Progresso</th>
+                <th className="py-3 px-4 whitespace-nowrap text-center">Timer</th>
               </tr>
             </thead>
             <tbody>
-              {execucoes.length === 0 ? (
+              {demands.length === 0 && execucoes.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={12} className="py-12 text-center text-sm text-muted-foreground">
                     Nenhuma execução encontrada. Crie uma na aba Execuções.
                   </td>
                 </tr>
               ) : (
-                execucoes.slice(0, 5).map((e, idx) => (
+                <>
+                {demands.map((demand, idx) => (
+                  <tr key={demand.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors group">
+                    <td className="py-3 px-6 text-xs font-bold text-foreground">D{idx + 1}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(demand.created_at).toLocaleDateString("pt-BR")}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{demand.title}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{demand.client_name || "-"}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{demand.category_name || "-"}</td>
+                    <td className="py-3 px-4">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${demand.type === "OUT_OF_SCOPE" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
+                        {demand.type === "OUT_OF_SCOPE" ? "Demanda Extra" : "No Escopo"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded">{demand.priority}</span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">-</td>
+                    <td className="py-3 px-4 flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[9px] font-bold text-[#8B5CF6]">
+                        {configuracoes?.nome?.substring(0, 2).toUpperCase() || "VO"}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${
+                        demand.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
+                        demand.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
+                        demand.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-500' : 'bg-gray-500/10 text-gray-500'
+                      }`}>
+                        {demand.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-6">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-[10px] font-bold text-foreground w-8 text-right">
+                          {demand.status === 'COMPLETED' ? '100%' : demand.status === 'PENDING' ? '0%' : '50%'}
+                        </span>
+                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className={`h-full ${demand.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-[#1e1b4b]'}`} 
+                               style={{ width: demand.status === 'COMPLETED' ? '100%' : demand.status === 'PENDING' ? '0%' : '50%' }}></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-xs font-mono font-medium text-foreground mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           {getDisplayTime(demand.id, demand.spent_time_seconds)}
+                        </span>
+                        {demand.status !== "IN_PROGRESS" && demand.status !== "COMPLETED" && (
+                          <button onClick={(e) => { e.stopPropagation(); handlePlay(demand); }} className="w-7 h-7 rounded-lg bg-white border border-border flex items-center justify-center hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition-colors shadow-sm text-muted-foreground">
+                            <Play className="w-3 h-3" />
+                          </button>
+                        )}
+                        {demand.status === "IN_PROGRESS" && (
+                          <button onClick={(e) => { e.stopPropagation(); handlePause(demand); }} className="w-7 h-7 rounded-lg bg-white border border-border flex items-center justify-center hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm text-muted-foreground">
+                            <Pause className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {execucoes.slice(0, 5).map((e, idx) => (
                   <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors">
                     <td className="py-3 px-6 text-xs font-bold text-foreground">00{idx + 1}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{e.criadoEm}</td>
@@ -330,8 +444,11 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-center text-xs text-muted-foreground">-</td>
                   </tr>
                 ))
+                }
+                </>
               )}
             </tbody>
           </table>
