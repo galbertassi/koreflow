@@ -9,7 +9,6 @@ const tabs = [
   { id: "conta", label: "Conta", icon: Shield },
   { id: "perfil", label: "Perfil", icon: User },
   { id: "notificacoes", label: "Notificações", icon: Bell },
-  { id: "integracoes", label: "Integrações", icon: Plug },
   { id: "ia", label: "Inteligência Artificial", icon: Bot },
 ];
 
@@ -218,30 +217,7 @@ export default function ConfiguracoesPage() {
               </div>
             </div>
           )}
-          {activeTab === "integracoes" && (
-            <div>
-              <h2 className="text-base font-semibold mb-1">Integrações</h2>
-              <p className="text-sm text-muted-foreground mb-6">Conecte suas ferramentas favoritas.</p>
-              <div className="grid gap-4">
-                {['Meta Ads', 'Google Ads', 'TikTok Ads', 'RD Station'].map((tool) => (
-                  <div key={tool} className="flex items-center justify-between p-4 border border-border rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center">
-                        <Plug className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold">{tool}</h3>
-                        <p className="text-xs text-muted-foreground">Não conectado</p>
-                      </div>
-                    </div>
-                    <button onClick={() => handleIntegrationToggle(tool)} className="px-3 py-1.5 text-sm font-medium text-[#8B5CF6] bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 rounded-lg transition-colors">
-                      Conectar
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

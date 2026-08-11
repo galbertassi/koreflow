@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,7 +24,6 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Execuções", href: "/execucoes", icon: LayoutGrid },
   { name: "Projetos", href: "/projetos", icon: Folder },
-  { name: "Planejamento", href: "/planejamento", icon: ClipboardCheck },
   { name: "Calendário", href: "/calendario", icon: Calendar },
   { name: "Insights", href: "/insights", icon: BarChart2 },
   { name: "KORE AI", href: "/kore-ai", icon: Bot },

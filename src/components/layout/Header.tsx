@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "@/hooks/use-store";
@@ -6,6 +6,8 @@ import { Bell, Calendar as CalendarIcon, ChevronDown, Clock, ChevronLeft, Chevro
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+import { DashboardActions } from "@/components/dashboard/DashboardActions";
 
 export function Header() {
   const pathname = usePathname();
@@ -143,12 +145,7 @@ export function Header() {
           )}
         </div>
 
-        <button className="relative w-[72px] h-[72px] flex items-center justify-center bg-white dark:bg-sidebar rounded-[24px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-border/50 hover:bg-secondary/50 transition-colors shrink-0">
-          <div className="relative">
-            <Bell className="h-6 w-6 text-sidebar-foreground/80" strokeWidth={1.5} />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#8B5CF6] rounded-full ring-[2.5px] ring-white dark:ring-sidebar translate-x-0.5 -translate-y-0.5"></span>
-          </div>
-        </button>
+        <DashboardActions />
       </div>
     </header>
   );

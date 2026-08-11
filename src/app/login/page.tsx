@@ -192,9 +192,14 @@ export default function LoginPage({
                 <a href="https://flow.koredigital.com.br" className="w-full h-[52px] flex items-center justify-center rounded-xl text-[14px] font-semibold text-white transition-all duration-300 border border-white/10 hover:bg-white/10">
                   Voltar para a página
                 </a>
-                <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
-                  Esqueceu a senha?
-                </a>
+                <div className="flex w-full justify-between px-2">
+                  <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
+                    Criar conta
+                  </a>
+                  <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
+                    Esqueceu a senha?
+                  </a>
+                </div>
               </div>
             </div>
           </div>
