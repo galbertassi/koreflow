@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore, Evento } from "@/hooks/use-store";
 import { ChevronLeft, ChevronRight, Calendar, Plus, Bell, Clock, Trash2, X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday, addMonths, subMonths, isSameDay } from "date-fns";
@@ -10,6 +10,9 @@ export default function CalendarioPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const { eventos, addEvento, deleteEvento } = useStore();
   const [showForm, setShowForm] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // O fechamento clicando fora agora usa o overlay (div com inset-0)
   
   const [novoEvento, setNovoEvento] = useState({
     titulo: "",
@@ -135,8 +138,12 @@ export default function CalendarioPage() {
       </div>
 
       {showForm && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl border border-border w-full max-w-md p-6 relative">
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowForm(false)}>
+          <div 
+            className="bg-white rounded-2xl shadow-xl border border-border w-full max-w-md p-6 relative"
+            ref={formRef}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground">
               <X className="w-4 h-4" />
             </button>

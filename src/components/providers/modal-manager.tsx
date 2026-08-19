@@ -7,25 +7,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { createDemand } from "@/app/(dashboard)/demandas/actions";
 
 function CreateExecutionModal() {
   const { closeModal } = useModal();
   const { addExecucao } = useStore();
+  const [cliente, setCliente] = useState("");
   const [titulo, setTitulo] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [entrega, setEntrega] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [prioridade, setPrioridade] = useState("Media");
   const [tipoPlanejamento, setTipoPlanejamento] = useState("Previsto");
 
-  const handleSubmit = () => {
-    if (!titulo.trim()) return;
-    addExecucao({ titulo, categoria, entrega, prioridade, tipo_planejamento: tipoPlanejamento as any });
-    setTitulo("");
-    setCategoria("");
-    setEntrega("");
-    setPrioridade("Media");
-    setTipoPlanejamento("Previsto");
-    closeModal();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!titulo.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      const res = await createDemand({
+        title: titulo,
+        client_name: cliente,
+        priority: prioridade === "Alta" ? "HIGH" : prioridade === "Baixa" ? "LOW" : "MEDIUM",
+        type: tipoPlanejamento === "Demanda Extra" ? "OUT_OF_SCOPE" : "IN_SCOPE",
+        description: observacao
+      });
+
+      if (!res.success) {
+        alert("Erro ao criar tarefa: " + res.error);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setCliente("");
+      setTitulo("");
+      setPrioridade("Media");
+      setTipoPlanejamento("Previsto");
+      setObservacao("");
+      closeModal();
+    } catch (e: any) {
+      alert("Exceção ao criar tarefa: " + e.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -36,26 +60,24 @@ function CreateExecutionModal() {
           <DialogDescription>Registre uma nova execucao no seu sistema.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="exec-title">Titulo *</Label>
-            <Input id="exec-title" placeholder="Ex: Relatorio de performance de maio" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="exec-category">Categoria</Label>
-            <Input id="exec-category" placeholder="Ex: Relatorios, Campanhas..." value={categoria} onChange={(e) => setCategoria(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="exec-tipo">Planejamento</Label>
+              <Label htmlFor="exec-cliente">Cliente</Label>
+              <Input id="exec-cliente" placeholder="Ex: Kore Flow" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="exec-title">Atividade *</Label>
+              <Input id="exec-title" placeholder="Ex: Landing Page" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="exec-tipo">Demanda</Label>
               <select id="exec-tipo" value={tipoPlanejamento} onChange={(e) => setTipoPlanejamento(e.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring/20">
                 <option value="Previsto">Previsto</option>
                 <option value="Demanda Extra">Demanda Extra</option>
               </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="exec-delivery">Data de entrega</Label>
-              <Input id="exec-delivery" type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="exec-priority">Prioridade</Label>
@@ -66,11 +88,22 @@ function CreateExecutionModal() {
               </select>
             </div>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="exec-obs" className="text-foreground font-semibold text-[13px]">Observação (Opcional)</Label>
+            <textarea 
+              id="exec-obs" 
+              placeholder="Adicione links, detalhes, orientações ou notas sobre essa demanda..." 
+              value={observacao} 
+              onChange={(e) => setObservacao(e.target.value)}
+              className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring/20 resize-y placeholder:text-muted-foreground/60"
+            />
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!titulo.trim()} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-40">
-            Criar Execucao
+          <Button variant="outline" onClick={closeModal} disabled={isSubmitting}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={!titulo.trim() || isSubmitting} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-40">
+            {isSubmitting ? "Criando..." : "Criar Tarefa"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -88,7 +121,7 @@ function CreateProjectModal() {
 
   const handleSubmit = () => {
     if (!nome.trim()) return;
-    addProjeto({ nome, cliente, inicio, fim });
+    addProjeto({ nome, cliente, status: "Ativo" });
     closeModal();
   };
 

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -11,7 +11,6 @@ export interface ActiveTimer {
 
 export function useDemandTimer() {
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabase = createClient();
 
@@ -69,23 +68,8 @@ export function useDemandTimer() {
     };
   }, [supabase, currentUserId]);
 
-  // Visual calculation
-  useEffect(() => {
-    if (!activeTimer) {
-      return;
-    }
-
-    const calculateElapsed = () => {
-      const started = new Date(activeTimer.started_at).getTime();
-      const now = new Date().getTime();
-      setElapsedSeconds(Math.floor((now - started) / 1000));
-    };
-
-    const interval = setInterval(calculateElapsed, 1000);
-    calculateElapsed(); // Initial calculation immediately
-
-    return () => clearInterval(interval);
-  }, [activeTimer]);
+  // We remove the interval from here so the hook doesn't force a re-render every second.
+  // The visual calculation will be handled by a specific LiveTimer component.
 
   // Helper to format total seconds into HH:MM:SS
   const formatTime = (totalSeconds: number) => {
@@ -95,14 +79,16 @@ export function useDemandTimer() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Helper to get total formatted time for a demand
+  // Helper to get total formatted time for a demand (STATIC, does not tick every second)
   const getDisplayTime = (demandId: string, demandSpentSeconds: number) => {
     let total = demandSpentSeconds || 0;
     if (activeTimer && activeTimer.demand_id === demandId) {
-      total += elapsedSeconds;
+      const started = new Date(activeTimer.started_at).getTime();
+      const now = new Date().getTime();
+      total += Math.floor((now - started) / 1000);
     }
     return formatTime(total);
   };
 
-  return { activeTimer, getDisplayTime };
+  return { activeTimer, getDisplayTime, setActiveTimer };
 }

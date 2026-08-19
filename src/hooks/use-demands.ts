@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -19,10 +19,20 @@ export interface DemandRecord {
   created_at: string;
 }
 
+let globalDemandsCache: DemandRecord[] | null = null;
+
 export function useDemands() {
-  const [demands, setDemands] = useState<DemandRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [demands, setDemandsState] = useState<DemandRecord[]>(globalDemandsCache || []);
+  const [loading, setLoading] = useState(!globalDemandsCache);
   const supabase = createClient();
+
+  const setDemands = (action: DemandRecord[] | ((prev: DemandRecord[]) => DemandRecord[])) => {
+    setDemandsState((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      globalDemandsCache = next;
+      return next;
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;

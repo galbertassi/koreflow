@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -9,36 +9,54 @@ import { UpgradeModal } from "@/components/ui/UpgradeModal";
 export type ExecucaoStatus = string;
 
 export interface Etiqueta {
+  id?: string;
   nome: string;
   cor: string;
 }
 
 export const DEFAULT_ETIQUETAS: Etiqueta[] = [
-  { nome: "Pendente", cor: "bg-slate-400/10 text-slate-500 border-slate-400/20" },
-  { nome: "Dar in├¡cio", cor: "bg-indigo-400/10 text-indigo-500 border-indigo-400/20" },
-  { nome: "Aguardando", cor: "bg-amber-400/10 text-amber-500 border-amber-400/20" },
-  { nome: "Em producao", cor: "bg-blue-400/10 text-blue-500 border-blue-400/20" },
-  { nome: "Aguardando Aprova├º├úo", cor: "bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20" },
-  { nome: "Concluida", cor: "bg-emerald-400/10 text-emerald-500 border-emerald-400/20" },
-  { nome: "Em Risco", cor: "bg-red-400/10 text-red-500 border-red-400/20" },
+  { id: "1", nome: "Pendente", cor: "#9ca3af" }, // gray-400
+  { id: "2", nome: "Em andamento", cor: "#0ea5e9" }, // sky-500
+  { id: "3", nome: "Pausada", cor: "#f59e0b" }, // amber-500
+  { id: "4", nome: "Em revisão", cor: "#a855f7" }, // purple-500
+  { id: "5", nome: "Concluída", cor: "#10b981" }, // emerald-500
+  { id: "6", nome: "Cancelada", cor: "#ef4444" }, // red-500
 ];
+
+export const normalizeEtiquetas = (etiquetas: any[]) => {
+  if (!etiquetas || !Array.isArray(etiquetas)) return DEFAULT_ETIQUETAS;
+  return etiquetas.map((e: any) => {
+    let nome = e.nome;
+    if (nome.includes("Aprova") || nome.includes("Revisao")) nome = "Em revisão";
+    if (nome.includes("início") || nome.includes("producao") || nome.includes("produção") || nome.includes("Andamento")) nome = "Em andamento";
+    if (nome.includes("Concluida")) nome = "Concluída";
+    if (nome.includes("Aguardando")) nome = "Pendente";
+    if (nome.includes("Risco")) nome = "Cancelada";
+    
+    if (!e.cor || !e.cor.startsWith('#')) {
+      const fallback = DEFAULT_ETIQUETAS.find(d => d.nome === nome);
+      return { ...e, nome, cor: fallback ? fallback.cor : "#9ca3af" };
+    }
+    return { ...e, nome };
+  });
+};
 
 export const STATUS_COLORS: Record<string, string> = DEFAULT_ETIQUETAS.reduce((acc, eq) => ({ ...acc, [eq.nome]: eq.cor }), {});
 
 export const STATUS_PROGRESS: Record<string, number> = {
   "Pendente": 0,
-  "Dar in├¡cio": 10,
-  "Aguardando": 0,
-  "Em producao": 30,
-  "Aguardando Aprova├º├úo": 80,
-  "Concluida": 100,
-  "Em Risco": 50,
+  "Em andamento": 30,
+  "Pausada": 30,
+  "Em revisão": 80,
+  "Concluída": 100,
+  "Cancelada": 0,
 };
 
 export interface Execucao {
   id: string;
   titulo: string;
   projetoId?: string;
+  cliente?: string;
   categoria: string;
   entrega: string;
   prioridade: string;
@@ -47,6 +65,8 @@ export interface Execucao {
   progresso: number;
   tipoPlanejamento?: string;
   observacao?: string;
+  tempoGasto?: number; // em segundos
+  timerStart?: number | null; // timestamp de inicio
   criadoEm: string;
 }
 
@@ -115,6 +135,16 @@ export interface Evento {
   criadoEm: string;
 }
 
+export interface AppNotification {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  lida: boolean;
+  data: string;
+  tipo: "Info" | "Aviso" | "Urgente";
+  actionUrl?: string;
+}
+
 export interface Configuracoes {
   nome: string;
   email: string;
@@ -126,6 +156,7 @@ export interface Configuracoes {
     demandasExtras: boolean;
     resumoSemanal: boolean;
     atualizacoes: boolean;
+    demandOrder?: string[];
   };
   ia: {
     chaveApi: string;
@@ -165,6 +196,12 @@ interface StoreContextType {
   metas: Meta[];
   planejamentos: Planejamento[];
   eventos: Evento[];
+  appNotificacoes: AppNotification[];
+  welcomeEnviado: boolean;
+  setWelcomeEnviado: (v: boolean) => void;
+  addNotificacao: (n: Omit<AppNotification, "id" | "data" | "lida">) => void;
+  marcarNotificacaoComoLida: (id: string) => void;
+  limparNotificacoes: () => void;
   addEvento: (e: Omit<Evento, "id" | "criadoEm">) => void;
   deleteEvento: (id: string) => void;
   configuracoes: Configuracoes;
@@ -190,7 +227,7 @@ interface StoreContextType {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   companyPlan: PlanType;
-  companyUsage: { demandsCreated: number };
+  companyUsage: { demandsCreated: number, minutesUsed: number };
   openUpgradeModal: () => void;
 }
 
@@ -209,18 +246,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [metas, setMetas] = useState<Meta[]>([]);
   const [planejamentos, setPlanejamentos] = useState<Planejamento[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [appNotificacoes, setAppNotificacoes] = useState<AppNotification[]>([]);
+  const [welcomeEnviado, setWelcomeEnviado] = useState(false);
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>({
     nome: "Carregando...",
     email: "",
     agencia: "Carregando...",
     tema: "Original",
-    notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false },
+    notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false, demandOrder: [] },
     ia: { chaveApi: "", tom: "Profissional e direto" },
     etiquetas: DEFAULT_ETIQUETAS
   });
 
   const [companyPlan, setCompanyPlan] = useState<PlanType>("Free");
-  const [companyUsage, setCompanyUsage] = useState({ demandsCreated: 0 });
+  const [companyUsage, setCompanyUsage] = useState({ demandsCreated: 0, minutesUsed: 0 });
   const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const openUpgradeModal = () => setUpgradeModalOpen(true);
 
@@ -237,7 +276,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (data.metas) setMetas(data.metas);
             if (data.planejamentos) setPlanejamentos(data.planejamentos);
             if (data.eventos) setEventos(data.eventos);
-            if (data.configuracoes) setConfiguracoes(prev => ({ ...prev, ...data.configuracoes }));
+            if (data.appNotificacoes) setAppNotificacoes(data.appNotificacoes);
+            if (data.welcomeEnviado !== undefined) setWelcomeEnviado(data.welcomeEnviado);
+            if (data.configuracoes) {
+              const conf = data.configuracoes;
+              if (conf.etiquetas) {
+                conf.etiquetas = normalizeEtiquetas(conf.etiquetas);
+              }
+              setConfiguracoes(prev => ({ ...prev, ...conf }));
+            }
           } catch (e) {
             console.error("Failed to parse local storage", e);
           }
@@ -258,15 +305,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setConfiguracoes({
             nome: configData.nome, email: configData.email, agencia: configData.agencia,
             tema: configData.tema as any, foto: configData.foto, notificacoes: configData.notificacoes, ia: configData.ia,
-            etiquetas: configData.etiquetas || DEFAULT_ETIQUETAS
+            etiquetas: normalizeEtiquetas(configData.etiquetas)
           });
         } else {
         const { data: defaultSettings, error: insertError } = await supabase.from('kore_configuracoes').insert({
             user_id: user.id,
             nome: user.user_metadata?.full_name || "Seu Nome",
             email: user.email || "",
-            agencia: "Sua Ag├¬ncia",
-            notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false },
+            notificacoes: { atraso: true, demandasExtras: true, resumoSemanal: true, atualizacoes: false, demandOrder: [] },
             ia: { chaveApi: "", tom: "Profissional e direto" },
             etiquetas: DEFAULT_ETIQUETAS
           }).select().single();
@@ -274,7 +320,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (defaultSettings) {
             setConfiguracoes({
               nome: defaultSettings.nome, email: defaultSettings.email, agencia: defaultSettings.agencia,
-              tema: "Original", notificacoes: defaultSettings.notificacoes, ia: defaultSettings.ia, etiquetas: defaultSettings.etiquetas
+              tema: "Original", notificacoes: defaultSettings.notificacoes, ia: defaultSettings.ia, etiquetas: normalizeEtiquetas(defaultSettings.etiquetas)
             });
           }
           if (insertError) {
@@ -302,20 +348,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           const monthYear = new Date().toISOString().slice(0, 7);
           const { data: usage } = await supabase.from('kore_company_usage')
-            .select('demands_created')
+            .select('demands_created, minutes_used')
             .eq('company_id', companyUser.company_id)
             .eq('month_year', monthYear)
             .maybeSingle();
           
           if (usage) {
-            setCompanyUsage({ demandsCreated: usage.demands_created });
+            setCompanyUsage({ 
+              demandsCreated: usage.demands_created || 0,
+              minutesUsed: usage.minutes_used || 0
+            });
           }
         }
 
         const { data: execData } = await supabase.from('kore_execucoes').select('*').eq('user_id', user.id).order('criado_em', { ascending: false });
         if (execData) {
           setExecucoes(execData.map(e => ({
-            id: e.id, titulo: e.titulo, projetoId: e.projeto_id, categoria: e.categoria, entrega: e.entrega, prioridade: e.prioridade, tipoPlanejamento: e.tipo_planejamento, data: e.data, status: e.status as any, progresso: e.progresso, observacao: e.observacao, criadoEm: e.criado_em
+            id: e.id, titulo: e.titulo, projetoId: e.projeto_id, categoria: e.categoria, entrega: e.entrega, prioridade: e.prioridade, tipoPlanejamento: e.tipo_planejamento, data: e.data, status: e.status as any, progresso: e.progresso, observacao: e.observacao, tempoGasto: 0, timerStart: null, criadoEm: e.criado_em
           })));
         }
 
@@ -361,6 +410,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("koreflow_data", JSON.stringify({ ...current, ...newState }));
   };
 
+  const saveNotificationsLocal = (newState: any) => {
+    // Sempre salva notificações no localStorage, independente de userId
+    const current = JSON.parse(localStorage.getItem("koreflow_data") || "{}");
+    localStorage.setItem("koreflow_data", JSON.stringify({ ...current, ...newState }));
+  };
+
   const updateConfiguracoes = async (changes: Partial<Configuracoes>) => {
     const newConfig = { ...configuracoes, ...changes };
     setConfiguracoes(newConfig);
@@ -370,7 +425,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         user_id: userId,
         nome: newConfig.nome, 
         email: newConfig.email || "",
-        agencia: newConfig.agencia, 
         tema: newConfig.tema, 
         foto: newConfig.foto, 
         notificacoes: newConfig.notificacoes, 
@@ -403,21 +457,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const addExecucao = async (e: Omit<Execucao, "id" | "criadoEm" | "status" | "progresso">) => {
-    if (!PLANS[companyPlan].hasUnlimitedDemands && companyUsage.demandsCreated >= PLANS[companyPlan].maxDemandsPerMonth) {
+    const limit = PLANS[companyPlan].maxDemandsPerMonth;
+    const isFree = !PLANS[companyPlan].hasUnlimitedDemands;
+    
+    if (isFree && companyUsage.demandsCreated >= limit) {
       openUpgradeModal();
+      setAppNotificacoes(prev => [{
+        id: crypto.randomUUID(), titulo: "Limite de Demandas Atingido", 
+        mensagem: "Você atingiu o limite do seu plano Free. Faça um upgrade para continuar criando novas demandas.",
+        tipo: "Urgente", lida: false, data: new Date().toISOString(), actionUrl: "/vendas"
+      }, ...prev]);
       return;
     }
 
-    const newEx = { ...e, id: crypto.randomUUID(), status: "Pendente" as const, progresso: 0, criadoEm: new Date().toISOString() };
+    if (isFree && companyUsage.demandsCreated === Math.floor(limit * 0.8)) {
+      setAppNotificacoes(prev => [{
+        id: crypto.randomUUID(), titulo: "Atenção ao Limite!", 
+        mensagem: `Você já usou ${Math.floor(limit * 0.8)} das suas ${limit} demandas gratuitas.`,
+        tipo: "Aviso", lida: false, data: new Date().toISOString(), actionUrl: "/vendas"
+      }, ...prev]);
+    }
+
+    const newEx = { ...e, id: crypto.randomUUID(), status: "Pendente" as const, progresso: 0, tempoGasto: 0, timerStart: null, criadoEm: new Date().toISOString() };
     setExecucoes(prev => [...prev, newEx]);
     
     const nextUsage = { ...companyUsage, demandsCreated: companyUsage.demandsCreated + 1 };
     setCompanyUsage(nextUsage);
     
     if (userId) {
-      await supabase.from('kore_execucoes').insert({
+      const { error: insertError } = await supabase.from('kore_execucoes').insert({
         id: newEx.id, user_id: userId, titulo: newEx.titulo, projeto_id: newEx.projetoId, categoria: newEx.categoria, entrega: newEx.entrega, prioridade: newEx.prioridade, tipo_planejamento: newEx.tipoPlanejamento, data: newEx.data, status: newEx.status, progresso: newEx.progresso, criado_em: newEx.criadoEm, observacao: newEx.observacao
       });
+      if (insertError) {
+        console.error("ERRO AO SALVAR EXECUCAO NO SUPABASE:", insertError);
+      }
+      if (companyId) {
+        const monthYear = new Date().toISOString().slice(0, 7);
+        await supabase.from('kore_company_usage').upsert({
+          company_id: companyId,
+          month_year: monthYear,
+          demands_created: nextUsage.demandsCreated,
+          minutes_used: nextUsage.minutesUsed || 0
+        }, { onConflict: 'company_id,month_year' });
+      }
     } else {
       saveStateLocal({ execucoes: [...execucoes, newEx] });
       localStorage.setItem("koreflow_usage", JSON.stringify(nextUsage));
@@ -425,9 +507,81 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const updateExecucao = async (id: string, changes: Partial<Execucao>) => {
-    setExecucoes(prev => prev.map(e => e.id === id ? { ...e, ...changes } : e));
+    if (changes.timerStart !== undefined && changes.timerStart !== null) {
+      const limitMins = PLANS[companyPlan].maxMinutesPerMonth;
+      const isFree = !PLANS[companyPlan].hasUnlimitedDemands;
+      if (isFree && companyUsage.minutesUsed >= limitMins) {
+        openUpgradeModal();
+        setAppNotificacoes(n => [{
+          id: crypto.randomUUID(), titulo: "Limite de Tempo Atingido", 
+          mensagem: "Você atingiu o limite de 10 horas do seu plano Free. Faça um upgrade para continuar registrando tempo.",
+          tipo: "Urgente", lida: false, data: new Date().toISOString(), actionUrl: "/vendas"
+        }, ...n]);
+        return; // Bloqueia o início do timer
+      }
+    }
+
+    let deltaMinutes = 0;
+    setExecucoes(prev => prev.map(e => {
+      if (e.id === id) {
+        if (changes.tempoGasto !== undefined && changes.tempoGasto > (e.tempoGasto || 0)) {
+          deltaMinutes = (changes.tempoGasto - (e.tempoGasto || 0)) / 60;
+        }
+        return { ...e, ...changes };
+      }
+      return e;
+    }));
+
+    if (deltaMinutes > 0) {
+      const prevUsage = companyUsage;
+      const nextUsage = { ...prevUsage, minutesUsed: (prevUsage.minutesUsed || 0) + deltaMinutes };
+      const limitMins = PLANS[companyPlan].maxMinutesPerMonth;
+      const isFree = !PLANS[companyPlan].hasUnlimitedDemands;
+      
+      setCompanyUsage(nextUsage);
+      
+      if (isFree && nextUsage.minutesUsed >= limitMins && prevUsage.minutesUsed < limitMins) {
+        setAppNotificacoes(n => [{
+          id: crypto.randomUUID(), titulo: "Limite de Tempo Atingido", 
+          mensagem: "Você atingiu o limite de 10 horas do seu plano Free. Faça um upgrade para continuar registrando tempo.",
+          tipo: "Urgente", lida: false, data: new Date().toISOString(), actionUrl: "/vendas"
+        }, ...n]);
+      }
+      
+      if (isFree && nextUsage.minutesUsed >= (limitMins * 0.8) && prevUsage.minutesUsed < (limitMins * 0.8)) {
+        setAppNotificacoes(n => [{
+          id: crypto.randomUUID(), titulo: "Atenção ao Limite de Tempo!", 
+          mensagem: `Você já usou 8 horas das suas 10 horas gratuitas.`,
+          tipo: "Aviso", lida: false, data: new Date().toISOString(), actionUrl: "/vendas"
+        }, ...n]);
+      }
+      
+      if (!userId) {
+        localStorage.setItem("koreflow_usage", JSON.stringify(nextUsage));
+      } else {
+        const monthYear = new Date().toISOString().slice(0, 7);
+        // Supabase async save without await blocking
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            supabase.from('users').select('company_id').eq('id', user.id).single().then(({ data: companyUser }) => {
+              if (companyUser) {
+                supabase.from('kore_company_usage')
+                  .update({ minutes_used: nextUsage.minutesUsed })
+                  .eq('company_id', companyUser.company_id)
+                  .eq('month_year', monthYear)
+                  .then();
+              }
+            });
+          }
+        });
+      }
+    }
+
     if (userId) {
       const dbChanges: any = { ...changes };
+      delete dbChanges.tempoGasto;
+      delete dbChanges.timerStart;
+      
       if (changes.projetoId !== undefined) {
         dbChanges.projeto_id = changes.projetoId;
         delete dbChanges.projetoId;
@@ -436,9 +590,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dbChanges.tipo_planejamento = changes.tipoPlanejamento;
         delete dbChanges.tipoPlanejamento;
       }
-      const { error } = await supabase.from('kore_execucoes').update(dbChanges).eq('id', id);
-      if (error) console.error("Error updating execucao:", error);
-    } else saveStateLocal({ execucoes: execucoes.map(e => e.id === id ? { ...e, ...changes } : e) });
+      if (Object.keys(dbChanges).length > 0) {
+        const { error } = await supabase.from('kore_execucoes').update(dbChanges).eq('id', id);
+        if (error) console.error("Error updating execucao:", error);
+      }
+    } else {
+      setExecucoes(prev => {
+        saveStateLocal({ execucoes: prev });
+        return prev;
+      });
+    }
   };
 
   const deleteExecucao = async (id: string) => {
@@ -617,7 +778,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <StoreContext.Provider value={{
       execucoes, projetos, metas, planejamentos, eventos, configuracoes,
-      addEvento, deleteEvento, updateConfiguracoes,
+      addEvento,
+      deleteEvento,
+      appNotificacoes,
+      welcomeEnviado,
+      setWelcomeEnviado: (v) => {
+        setWelcomeEnviado(v);
+        saveNotificationsLocal({ welcomeEnviado: v });
+      },
+      addNotificacao: (n) => {
+        setAppNotificacoes(prev => {
+          const id = crypto.randomUUID();
+          const nova = { ...n, id, lida: false, data: new Date().toISOString() };
+          const newArr = [nova, ...prev];
+          saveNotificationsLocal({ appNotificacoes: newArr });
+          return newArr;
+        });
+      },
+      marcarNotificacaoComoLida: (id) => {
+        setAppNotificacoes(prev => {
+          const newArr = prev.map(notif => notif.id === id ? { ...notif, lida: true } : notif);
+          saveNotificationsLocal({ appNotificacoes: newArr });
+          return newArr;
+        });
+      },
+      limparNotificacoes: () => {
+        setAppNotificacoes([]);
+        saveNotificationsLocal({ appNotificacoes: [] });
+      },
+      configuracoes, updateConfiguracoes,
       addExecucao, updateExecucao, deleteExecucao,
       addProjeto, addCampanha, addPostCampanha, updatePostCampanha, addInspiracao, deleteProjeto,
       addMeta, updateMetaProgresso, deleteMeta,

@@ -3,20 +3,47 @@
 import {
   Sparkles, Send, User, Calendar, BookOpen, Zap, Target,
   PlusCircle, Save, LayoutGrid, ListChecks, ChevronRight,
-  Megaphone, TrendingUp, Video, Hash, Gift
+  Megaphone, TrendingUp, Video, Hash, Gift, CheckCircle2, BarChart2,
+  CheckSquare, Folder, PauseCircle
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useStore } from "@/hooks/use-store";
 import { useRouter } from "next/navigation";
+import { useModal } from "@/hooks/use-modal";
 
-const SUGGESTIONS = [
-  { icon: <Megaphone className="w-4 h-4" />, label: "Criar campanha completa para um produto" },
-  { icon: <Calendar className="w-4 h-4" />, label: "Montar calendário editorial de 30 dias" },
-  { icon: <TrendingUp className="w-4 h-4" />, label: "Gerar relatório das minhas execuções" },
-  { icon: <Video className="w-4 h-4" />, label: "Roteiro de vídeo para Instagram Reels" },
-  { icon: <Hash className="w-4 h-4" />, label: "Gerar planejamento do mês para o cliente fulano" },
-  { icon: <Gift className="w-4 h-4" />, label: "Ideias de promoção para datas comemorativas" },
-];
+const getSuggestions = (personalidade: string) => {
+  switch (personalidade) {
+    case "Assistente Operacional (Focada em Tarefas)":
+      return [
+        { icon: <ListChecks className="w-4 h-4" />, label: "Listar todas as minhas demandas pendentes" },
+        { icon: <Zap className="w-4 h-4" />, label: "Iniciar timer para uma nova demanda" },
+        { icon: <Save className="w-4 h-4" />, label: "Registrar tempo na última demanda trabalhada" },
+        { icon: <CheckCircle2 className="w-4 h-4" />, label: "Marcar demanda atual como concluída" },
+      ];
+    case "Consultora Estratégica (Focada em Planejamento)":
+      return [
+        { icon: <Calendar className="w-4 h-4" />, label: "Montar calendário estratégico de 30 dias" },
+        { icon: <Megaphone className="w-4 h-4" />, label: "Criar funil de vendas para novo produto" },
+        { icon: <Target className="w-4 h-4" />, label: "Identificar gargalos nos projetos em risco" },
+        { icon: <TrendingUp className="w-4 h-4" />, label: "Traçar metas para o próximo mês" },
+      ];
+    case "Técnica e Analítica (Focada em Relatórios)":
+      return [
+        { icon: <BarChart2 className="w-4 h-4" />, label: "Gerar relatório completo de execuções" },
+        { icon: <TrendingUp className="w-4 h-4" />, label: "Análise de tempo médio por demanda" },
+        { icon: <ListChecks className="w-4 h-4" />, label: "Auditar demandas atrasadas ou sem etiqueta" },
+        { icon: <Save className="w-4 h-4" />, label: "Exportar resumo de produtividade" },
+      ];
+    case "Híbrida (Extraordinária e Proativa)":
+    default:
+      return [
+        { icon: <Zap className="w-4 h-4" />, label: "O que eu devo priorizar hoje?" },
+        { icon: <Target className="w-4 h-4" />, label: "Quais demandas estão em risco?" },
+        { icon: <TrendingUp className="w-4 h-4" />, label: "Gerar relatório de produtividade geral" },
+        { icon: <Calendar className="w-4 h-4" />, label: "Planejar minha semana com base nas demandas" },
+      ];
+  }
+};
 
 interface StoreData {
   execucoes: any[];
@@ -27,14 +54,47 @@ interface StoreData {
   configuracoes: any;
 }
 
-function generateAIResponse(text: string, userName: string, store: StoreData): string {
+interface AIResponse {
+  text: string;
+  actions: string[];
+}
+
+function generateAIResponse(text: string, userName: string, store: StoreData): AIResponse {
   const t = text.toLowerCase();
   const { execucoes, projetos, planejamentos, metas, eventos } = store;
+  let actions: string[] = [];
 
   const MESES_NOMES: Record<string, number> = {
     janeiro: 0, fevereiro: 1, março: 2, marco: 2, abril: 3, maio: 4,
     junho: 5, julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
   };
+
+  // Parar timer
+  if (t.includes("parar o tempo") || t.includes("parar timer") || t.includes("parar o timer")) {
+    const active = execucoes.find(e => e.timerStart);
+    if (active) {
+      actions.push("STOP_TIMER");
+      return {
+        text: `## ⏱️ Timer em Execução\n\nIdentifiquei que a demanda **${active.titulo}** está com o timer ativo. Clique no botão abaixo para parar o tempo agora mesmo.`,
+        actions
+      };
+    } else {
+      actions.push("GOTO_DEMANDS");
+      return {
+        text: `Nenhum timer está rodando no momento, ${userName}. Quer ir para a Central de Demandas para iniciar um?`,
+        actions
+      };
+    }
+  }
+
+  // Registrar tempo / Iniciar timer
+  if (t.includes("registrar tempo") || t.includes("iniciar timer")) {
+    actions.push("GOTO_DEMANDS");
+    return {
+      text: `## ⏱️ Controle de Tempo\n\nPara iniciar ou registrar tempo, acesse a Central de Demandas. Lá você pode dar *play* em qualquer demanda pendente ou "Em Produção".`,
+      actions
+    };
+  }
 
   // Eventos agendados
   if (t.includes("event") || t.includes("agendad")) {
@@ -69,11 +129,11 @@ function generateAIResponse(text: string, userName: string, store: StoreData): s
     });
 
     if (eventosMes.length === 0) {
-      return `## 📅 Eventos — ${nomesMes}/${anoFiltro}
+      return { text: `## 📅 Eventos — ${nomesMes}/${anoFiltro}
 
 Nenhum evento agendado para ${nomesMes}.
 
-Use a página **Calendário** para criar novos eventos, ou diga "Agendar evento" e eu te ajudo!`;
+Use a página **Calendário** para criar novos eventos, ou diga "Agendar evento" e eu te ajudo!`, actions: [] };
     }
 
     const lista = eventosMes
@@ -86,7 +146,7 @@ Use a página **Calendário** para criar novos eventos, ou diga "Agendar evento"
         return `- **${dia}** — ${ev.titulo} ${alarme}`;
       }).join("\\n");
 
-    return `## 📅 Eventos Agendados — ${nomesMes}/${anoFiltro}
+    return { text: `## 📅 Eventos Agendados — ${nomesMes}/${anoFiltro}
 
 **Total de eventos:** ${eventosMes.length}
 
@@ -96,392 +156,116 @@ ${lista}
 
 ---
 
-*Dados lidos diretamente da sua agenda no KORE FLOW.*`;
+*Dados lidos diretamente da sua agenda no KORE FLOW.*`, actions: [] };
   }
 
-  // Relatório de execuções
-  if (t.includes("relatório") || t.includes("relatorio") || t.includes("execuç") || t.includes("execuc")) {
-    const total = execucoes.length;
-    const concluidas = execucoes.filter(e => e.status === "Concluida").length;
-    const emProducao = execucoes.filter(e => e.status === "Em producao").length;
-    const emRisco = execucoes.filter(e => e.status === "Em Risco").length;
-    const aguardando = execucoes.filter(e => e.status === "Aguardando").length;
-    const revisao = execucoes.filter(e => e.status === "Revisao").length;
-    const taxaEntrega = total > 0 ? Math.round((concluidas / total) * 100) : 0;
-    const progressoMedio = total > 0 ? Math.round(execucoes.reduce((sum, e) => sum + (e.progresso || 0), 0) / total) : 0;
-    const emRiscoList = execucoes.filter(e => e.status === "Em Risco").map(e => e.titulo).join(", ") || "Nenhuma";
-    const altaPrioridade = execucoes.filter(e => e.prioridade === "Alta").length;
-    const mes = new Date().toLocaleString("pt-BR", { month: "long", year: "numeric" });
+  // O que eu devo priorizar hoje?
+  if (t.includes("priorizar") || t.includes("prioridade")) {
+    const altasPrioridades = execucoes.filter(e => e.prioridade === "Alta" && e.status !== "Concluída");
+    const emAtraso = execucoes.filter(e => {
+      if (e.status === "Concluída") return false;
+      if (!e.entrega) return false;
+      const [dia, mes, ano] = e.entrega.split("/");
+      const dataEntrega = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+      return dataEntrega < new Date();
+    });
 
-    if (total === 0) {
-      return `## 📊 Relatório de Execuções\n\nNenhuma execução cadastrada ainda. Acesse **Execuções** e crie as primeiras tarefas para começarmos a monitorar o progresso da sua equipe.`;
+    if (altasPrioridades.length === 0 && emAtraso.length === 0) {
+      actions.push("GOTO_DEMANDS", "CREATE_DEMAND");
+      return {
+        text: `## 🎯 Prioridades de Hoje\n\nExcelente notícia, ${userName}! Você não tem demandas em atraso nem com prioridade Alta no momento.\n\nSugiro que você pegue alguma demanda com status "Aguardando" ou crie novas tarefas.`,
+        actions
+      };
     }
 
-    return `## 📊 Relatório de Execuções — ${mes.charAt(0).toUpperCase() + mes.slice(1)}
-
-**Responsável:** ${userName}  
-**Total de execuções:** ${total}
-
----
-
-### 📈 Visão Geral
-- **Concluídas:** ${concluidas} execução(ões) ✅
-- **Em Produção:** ${emProducao} execução(ões) 🔵
-- **Em Revisão:** ${revisao} execução(ões) 🟣
-- **Aguardando:** ${aguardando} execução(ões) 🟡
-- **Em Risco:** ${emRisco} execução(ões) 🔴
-
----
-
-### 🎯 Indicadores
-- **Taxa de Entrega:** ${taxaEntrega}%
-- **Progresso Médio Geral:** ${progressoMedio}%
-- **Alta Prioridade:** ${altaPrioridade} item(ns)
-
----
-
-### 🚨 Atenção — Execuções em Risco
-${emRiscoList}
-
----
-
-### 💡 Diagnóstico
-${taxaEntrega >= 80 ? `✅ Excelente desempenho! Taxa de entrega acima de 80%. Continue assim, ${userName}.` : taxaEntrega >= 50 ? `⚠️ Desempenho moderado. Foque nas execuções em produção para aumentar a taxa de entrega.` : `🔴 Atenção necessária. Taxa de entrega abaixo de 50%. Priorize as execuções em risco e revise os prazos.`}
-
----
-*Relatório gerado automaticamente pela KORE AI com base nos seus dados em tempo real.*`;
+    let resposta = `## 🎯 Prioridades de Hoje para ${userName}\n\n`;
+    if (emAtraso.length > 0) {
+      resposta += `### 🚨 Demandas em Atraso (Máxima Urgência!)\n`;
+      resposta += emAtraso.map(e => `- **${e.titulo}** (Era para ${e.entrega})`).join("\n") + "\n\n";
+    }
+    if (altasPrioridades.length > 0) {
+      resposta += `### 🔥 Alta Prioridade\n`;
+      resposta += altasPrioridades.map(e => `- **${e.titulo}** (Status: ${e.status})`).join("\n") + "\n\n";
+    }
+    
+    resposta += `\n\n--- \n*Dica da I.A:* Comece pelas que estão em atraso e depois vá para as de alta prioridade. Se precisar, inicie o timer na Central de Demandas!`;
+    actions.push("GOTO_DEMANDS");
+    return { text: resposta, actions };
   }
 
-  // Planejamento do mês para cliente específico
-  if ((t.includes("planejamento") || t.includes("planejar") || t.includes("mês") || t.includes("mes")) && (t.includes("cliente") || t.includes("para o") || t.includes("para a"))) {
-    const clienteMatch = text.match(/(?:cliente|para o|para a|do)\s+([A-Za-zÀ-ú]+(?:\s+[A-Za-zÀ-ú]+)?)/i);
-    const clienteNome = clienteMatch?.[1] || "Cliente";
-    const mesAtual = new Date().toLocaleString("pt-BR", { month: "long" });
-    const mesCapital = mesAtual.charAt(0).toUpperCase() + mesAtual.slice(1);
-    const anoAtual = new Date().getFullYear();
-    const hoje = new Date();
-    const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-
-    // Check if client exists in any planning
-    const clienteExistente = planejamentos.find(pl =>
-      pl.clientes?.some((c: any) => c.nome?.toLowerCase().includes(clienteNome.toLowerCase()))
-    );
-
-    return `## 📅 Planejamento de ${mesCapital}/${anoAtual} — ${clienteNome}
-
-${clienteExistente ? `✅ **Cliente encontrado** nos seus planejamentos existentes.` : `📋 **Novo planejamento** sendo gerado para ${clienteNome}.`}
-
----
-
-### 🗓️ Visão Geral do Mês (${diasNoMes} dias úteis)
-
-**Objetivo:** Presença consistente, engajamento e geração de leads
-
----
-
-### 📆 Semana 1 (Dias 1–7) — Posicionamento
-- **Seg:** Reels educativo — "3 erros que impedem resultados em [nicho]"
-- **Qua:** Carrossel — Apresentação da empresa/serviço com dados
-- **Sex:** Stories — Bastidores + enquete de engajamento
-
-### 📆 Semana 2 (Dias 8–14) — Autoridade
-- **Seg:** Feed — Caso de sucesso / depoimento de cliente
-- **Qua:** Reels — Tutorial ou dica rápida do nicho
-- **Sex:** Carrossel — "Antes e depois" ou transformação
-
-### 📆 Semana 3 (Dias 15–21) — Relacionamento
-- **Seg:** Stories — Quiz sobre o nicho
-- **Qua:** Feed — Post de valor: lista, checklist ou dicas
-- **Sex:** Reels — Tendência do momento adaptada ao negócio
-
-### 📆 Semana 4 (Dias 22–${diasNoMes}) — Conversão
-- **Seg:** Carrossel — Oferta ou diferencial competitivo
-- **Qua:** Stories — CTA direto com link na bio
-- **Sex:** Feed — Fechamento do mês: gratidão + próximos passos
-
----
-
-### 🎯 Métricas do Mês (Metas sugeridas)
-- **Novos seguidores:** +200
-- **Taxa de engajamento:** ≥ 4%
-- **Posts publicados:** 12–15
-- **DMs de leads:** ≥ 10
-
----
-
-*Planejamento personalizado para ${clienteNome} gerado pela KORE AI.*
-Use os botões abaixo para salvar esse planejamento direto no KORE FLOW! 👇`;
+  // Relatório geral
+  if (t.includes("relatório") || t.includes("resumo") || t.includes("produtividade geral")) {
+    const totalConcluidas = execucoes.filter(e => e.status === "Concluída").length;
+    const totalPendentes = execucoes.filter(e => e.status !== "Concluída").length;
+    
+    actions.push("CREATE_DEMAND", "GOTO_REPORTS");
+    return {
+      text: `## 📊 Seu Relatório de Produtividade\n\nAqui está o resumo da sua operação:\n\n- **Demandas Concluídas:** ${totalConcluidas}\n- **Demandas Pendentes:** ${totalPendentes}\n- **Projetos Ativos:** ${projetos.length}\n\nUse os atalhos abaixo para criar novas tarefas ou ver os relatórios completos.`,
+      actions
+    };
   }
 
-
-  // Campanha completa
-  if (t.includes("campanha")) {
-    const produto = text.match(/para (.+)/i)?.[1] || "seu produto/serviço";
-    return `## 🚀 Campanha Completa — ${produto}
-
-**Objetivo:** Gerar reconhecimento de marca e conversões diretas
-
----
-
-### 🎯 Fase 1 — Aquecimento (Dias 1–7)
-- **Stories:** 3 bastidores do processo de criação
-- **Feed:** 1 post de "problema vs. solução" com carrossel
-- **Reels:** "O que você não sabia sobre ${produto}" (60s)
-- **Copy sugerido:** *"Você sabia que 80% das pessoas cometem esse erro? A gente resolveu isso."*
-
-### 🔥 Fase 2 — Ativação (Dias 8–14)
-- **Carrossel:** 5 benefícios em slides visuais
-- **Stories:** Prova social (depoimentos em vídeo/print)
-- **Reels:** Transformação / antes e depois
-- **CTA:** *"Link na bio para garantir o seu"*
-
-### 💰 Fase 3 — Conversão (Dias 15–21)
-- **Post:** Urgência e escassez ("Últimas vagas")
-- **Stories:** Contagem regressiva com sticker de timer
-- **Feed:** Post de FAQ com as principais objeções respondidas
-- **Copy:** *"Hoje é o último dia. Clique no link e garanta agora."*
-
----
-
-📊 **Métricas para acompanhar:** Alcance, engajamento, cliques no link, DMs recebidas.
-
----
-O que deseja fazer com essa campanha?`;
+  if (t.includes("risco")) {
+    const emRisco = execucoes.filter(e => e.status === "Em Risco");
+    if (emRisco.length === 0) {
+      actions.push("CREATE_DEMAND");
+      return {
+        text: `## 🛡️ Tudo Seguro!\n\nNenhuma demanda sua está classificada como "Em Risco" no momento. Bom trabalho, ${userName}!`,
+        actions
+      };
+    }
+    actions.push("GOTO_DEMANDS");
+    return {
+      text: `## ⚠️ Atenção! Demandas em Risco\n\nEncontrei **${emRisco.length}** demandas marcadas como "Em Risco":\n\n${emRisco.map(e => `- **${e.titulo}**`).join("\n")}\n\nRecomendo verificar isso imediatamente.`,
+      actions
+    };
   }
 
-  // Calendário editorial
-  if (t.includes("calendário") || t.includes("calendario") || t.includes("30 dias") || t.includes("60 dias") || t.includes("90 dias")) {
-    const dias = t.includes("90") ? 90 : t.includes("60") ? 60 : 30;
-    return `## 📅 Calendário Editorial — ${dias} Dias
+  if (t.includes("pendentes") || t.includes("auditar")) {
+    const pendentes = execucoes.filter(e => e.status !== "Concluída");
+    const semEtiqueta = pendentes.filter(e => !e.etiquetas || e.etiquetas.length === 0);
+    
+    let resposta = `## 📋 Resumo de Pendências\n\nVocê tem um total de **${pendentes.length} demanda(s) pendente(s)** no Kore Flow.\n\n`;
+    
+    if (semEtiqueta.length > 0) {
+      resposta += `### ⚠️ Demandas sem Etiqueta\nEncontrei **${semEtiqueta.length} demanda(s)** que não estão categorizadas com nenhuma etiqueta. Organizar isso pode te ajudar a focar melhor:\n`;
+      resposta += semEtiqueta.slice(0, 5).map(e => `- **${e.titulo}**`).join("\n");
+      if (semEtiqueta.length > 5) resposta += `\n- *(e mais ${semEtiqueta.length - 5} outras...)*`;
+      resposta += "\n\n";
+    }
 
-Aqui está a estrutura semanal que vou rodar durante ${dias} dias:
-
----
-
-**🔁 Frequência semanal sugerida:**
-
-| Dia | Formato | Tema |
-|-----|---------|------|
-| Segunda | Reels | Educativo / Dica Rápida |
-| Terça | Stories | Bastidores / Processo |
-| Quarta | Carrossel | Passo a passo / Tutorial |
-| Quinta | Feed | Depoimento / Prova Social |
-| Sexta | Reels | Tendência / Entretenimento |
-| Sábado | Stories | Engajamento (enquete, quiz) |
-| Domingo | Feed | Reflexão / Motivação da semana |
-
----
-
-**📌 Pilares de conteúdo sugeridos:**
-1. **Educação** — Ensine algo do seu nicho (40% dos posts)
-2. **Autoridade** — Cases, resultados, bastidores (30%)
-3. **Vendas** — Oferta, CTA, promoção (20%)
-4. **Conexão** — Humanização, entretenimento (10%)
-
----
-Posso gerar as legendas de cada post também. É só pedir!`;
+    resposta += `---\nVocê pode ir até a aba **Demandas** e organizar seu quadro!`;
+    return { text: resposta, actions: ["GOTO_DEMANDS"] };
   }
 
-  // Copywriting / legenda
-  if (t.includes("legenda") || t.includes("copy") || t.includes("texto")) {
-    return `## ✍️ Legendas Prontas para Usar
-
-Aqui estão 3 variações com abordagens diferentes:
-
----
-
-**🔵 Versão Curiosidade:**
-> Existe uma razão pela qual as pessoas que fazem [X] chegam mais rápido ao resultado. E não é o que você está pensando.
-> 
-> A diferença não é esforço. É estratégia.
-> 
-> Quer saber qual é? Vem no direct, eu explico.
-> 
-> 👉 Comenta "EU QUERO" aqui embaixo!
-
----
-
-**🟣 Versão Prova Social:**
-> Há 3 meses a [Nome do Cliente] estava exatamente onde você está agora.
-> 
-> Hoje ela tem [resultado concreto].
-> 
-> O que mudou? [Seu produto/serviço].
-> 
-> Acesse o link na bio e veja como funciona. 🚀
-
----
-
-**🔴 Versão Urgência:**
-> Atenção: as vagas para [produto/serviço] se encerram em 48h.
-> 
-> Se você já pensou em [benefício desejado], agora é a hora.
-> 
-> Não deixa pra depois. ⏳ Link na bio.
-
----
-Quer que eu adapte alguma para um cliente específico?`;
+  if (t.includes("timer") || t.includes("registrar tempo") || t.includes("atalho")) {
+    return {
+      text: `## ⏱️ Controle de Tempo no Kore Flow\n\nAqui vai como você pode dominar o seu tempo no sistema:\n\n` +
+            `1. **Na aba Demandas:** Clique no ícone de play (▶️) em qualquer demanda para iniciar o contador global.\n` +
+            `2. **O Timer Flutuante:** Ele vai aparecer no canto inferior direito.\n` +
+            `3. **Parar Tempo:** Clique no quadrado (⏹️) e o tempo será registrado.\n\n` +
+            `---\n*Extraordinário, não? Nada de anotar horas no papel ou em planilhas!*`,
+      actions: ["GOTO_DEMANDS"]
+    };
   }
 
-  // Stories
-  if (t.includes("stories") || t.includes("story")) {
-    return `## 📱 Sequência de Stories — 7 Slides
+  if (t.includes("relatório") || t.includes("relatorio") || t.includes("execuç") || t.includes("execuc")) {
+    const total = execucoes.length;
+    const concluidas = execucoes.filter(e => e.status === "Concluída").length;
+    const taxaEntrega = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+    const mes = new Date().toLocaleString("pt-BR", { month: "long", year: "numeric" });
 
-**Objetivo:** Aquecer audiência e gerar DMs / Cliques no link
-
----
-
-**Slide 1 — Gancho:**
-> "Você comete esse erro toda vez que posta? 👀"
-> *(Fundo colorido chamativo, texto grande)*
-
-**Slide 2 — Identificação:**
-> "Se você posta todo dia mas não tem resultado... esse story é pra você."
-
-**Slide 3 — Problema:**
-> "O problema não é frequência. É falta de estratégia."
-> *(Use emoji de alerta 🚨)*
-
-**Slide 4 — Solução:**
-> "Aqui está o que funciona de verdade em 2025 👇"
-
-**Slide 5 — Conteúdo de valor:**
-> Dica 1: [X]
-> Dica 2: [Y]
-> Dica 3: [Z]
-> *(Pode usar carrossel de texto ou vídeo curto)*
-
-**Slide 6 — Prova:**
-> "Isso é exatamente o que a gente aplicou com nossos clientes."
-> *(Print de resultado ou depoimento)*
-
-**Slide 7 — CTA:**
-> "Quer aplicar isso no seu negócio?"
-> *(Use sticker de Link ou "Arrasta pra cima")*
-
----
-Sticker sugerido: **Enquete**, **Resposta** ou **Link**.`;
+    return {
+      text: `## 📊 Relatório de Execuções — ${mes.charAt(0).toUpperCase() + mes.slice(1)}\n**Responsável:** ${userName}  \n**Total:** ${total}\n**Taxa de Entrega:** ${taxaEntrega}%`,
+      actions: ["GOTO_REPORTS"]
+    };
   }
 
-  // Roteiro vídeo
-  if (t.includes("roteiro") || t.includes("vídeo") || t.includes("video") || t.includes("reels")) {
-    return `## 🎬 Roteiro — Reels / Vídeo Curto (30–60s)
-
----
-
-**⚡ GANCHO (0–3s):**
-> *Fale olhando direto para a câmera:*
-> "Você está perdendo dinheiro por causa disso — e nem sabe."
-
-**📖 DESENVOLVIMENTO (4–25s):**
-> "A maioria das pessoas acha que para vender mais precisa postar mais vezes. Isso é mentira."
-> *(Corte rápido, mude o ângulo)*
-> "O que realmente funciona é ter uma estratégia clara de conteúdo. Vou te mostrar em 3 passos:"
-> *(Apareça na tela com textos em overlay)*
-> "1. Defina um pilar de conteúdo. 2. Crie uma rotina de postagem. 3. Use CTAs em todo post."
-
-**💰 CTA FINAL (26–30s):**
-> "Se quiser que a gente monte isso pra você, arrasta pra cima ou acessa o link na bio."
-> *(Aparece logo/marca no canto)*
-
----
-
-**🎙️ Dicas de produção:**
-- Luz natural de frente
-- Fundo limpo ou brandado
-- Legenda automática ativada
-- Música trend do momento
-
----
-Quer que eu faça o roteiro para um tema específico?`;
-  }
-
-  // Funil
-  if (t.includes("funil") || t.includes("lançamento") || t.includes("estratégia")) {
-    return `## 🎯 Funil de Vendas — Estratégia Completa
-
----
-
-### 🔝 Topo do Funil — Atração
-**Objetivo:** Fazer pessoas te descobrirem
-
-- Reels educativos sobre o problema que você resolve
-- Posts com títulos que geram curiosidade
-- Anúncios de alcance para público frio
-- Uso de hashtags do nicho
-
-*Métrica: Novos seguidores, alcance de não-seguidores*
-
----
-
-### 🔶 Meio do Funil — Engajamento
-**Objetivo:** Criar relacionamento e confiança
-
-- Stories com bastidores e rotina
-- Carrosséis com passo a passo
-- Depoimentos de clientes
-- Lives de perguntas e respostas
-
-*Métrica: Curtidas, comentários, compartilhamentos, DMs*
-
----
-
-### 🔴 Fundo do Funil — Conversão
-**Objetivo:** Transformar seguidores em clientes
-
-- Post de oferta direta com CTA claro
-- Stories com link e timer de urgência
-- Sequência de e-mails / WhatsApp para lista
-- Anúncio de remarketing para quem visitou o site
-
-*Métrica: Cliques no link, mensagens, vendas*
-
----
-
-📌 **Ferramentas sugeridas:** ManyChat, RD Station, Notion para gestão.`;
-  }
-
-  // Datas comemorativas
-  if (t.includes("data") || t.includes("comemorat") || t.includes("promoção") || t.includes("promocao")) {
-    const mes = new Date().toLocaleString("pt-BR", { month: "long" });
-    return `## 🎉 Datas Comemorativas & Promoções — ${mes.charAt(0).toUpperCase() + mes.slice(1)}
-
----
-
-**📅 Principais datas para aproveitar:**
-
-- **Dia dos Namorados (12/06)** — Conteúdo sobre relacionamentos, presentes, experiências
-- **Dia dos Pais (segundo domingo de agosto)** — Homenagem + promoção de serviços
-- **Black Friday (última sexta de novembro)** — Maior oportunidade de vendas do ano
-- **Natal (25/12)** — Emoção, gratidão e oferta especial de encerramento de ano
-
----
-
-**💡 Ideias de promoção:**
-
-1. **Desconto progressivo:** "Compre 2, leve 3" ou "10% de desconto na primeira semana"
-2. **Combo exclusivo:** Une dois serviços com preço especial por tempo limitado
-3. **Lista VIP:** Quem entrar na lista recebe a oferta 24h antes do público geral
-4. **Sorteio de engajamento:** Aumente o alcance e gere leads qualificados
-5. **Challenge + Hashtag:** Crie um desafio relacionado à data comemorativa
-
----
-
-**📣 Copy para stories de data comemorativa:**
-> "Hoje é um dia especial — e a gente preparou algo especial pra você também. 🎁
-> Arrasta pra cima e garanta antes que acabe."
-
----
-Quer o calendário completo do ano com as principais datas?`;
-  }
-
-  // Default — resposta de marketing genérica
-  const respostas = [
-    `Entendido, ${userName}! Estou aqui como seu colaborador digital de marketing. Me diga mais sobre o seu negócio ou cliente e vou gerar o conteúdo, estratégia ou planejamento que você precisar.\n\nAlgumas coisas que posso criar agora:\n- **Campanhas completas** com fases de aquecimento e conversão\n- **Calendários editoriais** de 30, 60 ou 90 dias\n- **Legendas e copies** prontos para postar\n- **Roteiros de vídeo** para Reels e TikTok\n- **Sequências de stories** de venda`,
-    `Boa pergunta, ${userName}! Para te dar a melhor resposta, me conta: qual é o nicho ou produto que vamos trabalhar? Assim consigo montar algo bem direcionado para o seu público.`,
-    `Certo, ${userName}! Analisando sua solicitação e preparando uma estratégia personalizada. Me dê um pouco mais de contexto — qual é o objetivo principal? Reconhecimento de marca, geração de leads ou vendas diretas?`,
-  ];
-  return respostas[Math.floor(Math.random() * respostas.length)];
+  actions.push("CREATE_DEMAND", "CREATE_PROJECT");
+  return {
+    text: `Olá, ${userName}! Sou a Kore AI.\n\nAqui estão algumas coisas extraordinárias que posso fazer por você:\n\n1. **Parar ou iniciar seu timer** automaticamente.\n2. **Gerar relatórios de produtividade** em segundos.\n3. **Mapear prioridades** e demandas atrasadas para você.\n\nComo posso ajudar a acelerar seu fluxo hoje?`,
+    actions
+  };
 }
 
 function renderMarkdown(text: string) {
@@ -490,7 +274,6 @@ function renderMarkdown(text: string) {
     if (line.startsWith("## ")) return <h2 key={i} className="text-base font-bold text-foreground mt-4 mb-2">{line.replace("## ", "")}</h2>;
     if (line.startsWith("### ")) return <h3 key={i} className="text-sm font-semibold text-foreground mt-3 mb-1">{line.replace("### ", "")}</h3>;
     if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="font-semibold text-sm text-foreground">{line.replace(/\*\*/g, "")}</p>;
-    if (line.startsWith("> ")) return <blockquote key={i} className="border-l-2 border-[#8B5CF6]/50 pl-3 text-sm text-muted-foreground italic my-1">{line.replace("> ", "")}</blockquote>;
     if (line.startsWith("- ")) return <li key={i} className="text-sm text-foreground ml-4 list-disc">{line.replace("- ", "").replace(/\*\*(.+?)\*\*/g, "$1")}</li>;
     if (line.startsWith("| ") && line.endsWith(" |")) {
       const cells = line.split("|").filter(c => c.trim() !== "");
@@ -509,10 +292,14 @@ function renderMarkdown(text: string) {
 
 export default function KoreAiPage() {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string, actions?: string[] }[]>([
+      { role: "ai", content: "Olá! Sou a **Kore AI**. Como posso ajudar a orquestrar seu dia hoje?" }
+  ]);
   const [isTyping, setIsTyping] = useState(false);
-  const [lastAiContent, setLastAiContent] = useState("");
-  const { configuracoes, execucoes, projetos, planejamentos, metas, eventos, addPlanejamento, addProjeto, addExecucao } = useStore();
+  const { configuracoes, execucoes, updateExecucao, projetos, planejamentos, metas, eventos, addProjeto, addExecucao } = useStore();
+  const { openModal } = useModal();
+  const personalidade = configuracoes?.ia?.tom || "Híbrida (Extraordinária e Proativa)";
+  const suggestions = getSuggestions(personalidade);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -527,9 +314,8 @@ export default function KoreAiPage() {
     setIsTyping(true);
 
     setTimeout(() => {
-      const response = generateAIResponse(text, configuracoes.nome, { execucoes, projetos, planejamentos, metas, eventos, configuracoes });
-      setLastAiContent(response);
-      setMessages(prev => [...prev, { role: "ai", content: response }]);
+      const response = generateAIResponse(text, configuracoes?.nome || "Usuário", { execucoes, projetos, planejamentos, metas, eventos, configuracoes });
+      setMessages(prev => [...prev, { role: "ai", content: response.text, actions: response.actions }]);
       setIsTyping(false);
     }, 1400);
   };
@@ -551,8 +337,7 @@ export default function KoreAiPage() {
     addProjeto({
       nome: `Projeto KORE AI — ${new Date().toLocaleDateString("pt-BR")}`,
       cliente: "KORE AI",
-      inicio: new Date().toISOString().split("T")[0],
-      fim: new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0],
+      status: "Ativo"
     });
     router.push("/projetos");
   };
@@ -563,7 +348,7 @@ export default function KoreAiPage() {
       categoria: "Marketing",
       entrega: new Date(new Date().setDate(new Date().getDate() + 7)).toLocaleDateString("pt-BR"),
       prioridade: "Alta",
-      tipo_planejamento: "Previsto",
+      tipoPlanejamento: "Previsto",
     });
     router.push("/execucoes");
   };
@@ -585,12 +370,12 @@ export default function KoreAiPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight mb-2">KORE AI</h1>
             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              Seu colaborador digital de marketing. Crio campanhas, calendários, copies, roteiros e estratégias — tudo integrado ao KORE FLOW.
+              Sua assistente {personalidade.split(" ")[0].toLowerCase()} para orquestrar suas demandas e tempo no Kore Flow.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
-            {SUGGESTIONS.map((s, i) => (
+            {suggestions.map((s, i) => (
               <button
                 key={i}
                 onClick={() => handleSend(s.label)}
@@ -624,21 +409,42 @@ export default function KoreAiPage() {
                   </div>
                 </div>
 
-                {isLast && !isTyping && (
+                {isAi && msg.actions && msg.actions.length > 0 && !isTyping && (
                   <div className="ml-11">
-                    <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-widest mb-2">Salvar ou criar a partir desta resposta</p>
+                    <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-widest mb-2">Ações Sugeridas</p>
                     <div className="flex flex-wrap gap-2">
-                      {ACTION_BUTTONS.map((btn, j) => (
-                        <button
-                          key={j}
-                          onClick={btn.action}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${btn.color}`}
-                        >
-                          {btn.icon}
-                          {btn.label}
-                          <ChevronRight className="w-3 h-3 opacity-50" />
+                      {msg.actions.includes("CREATE_DEMAND") && (
+                        <button onClick={() => openModal("CREATE_EXECUTION")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white">
+                          <CheckSquare className="w-3.5 h-3.5" /> Nova Demanda
                         </button>
-                      ))}
+                      )}
+                      {msg.actions.includes("CREATE_PROJECT") && (
+                        <button onClick={() => openModal("CREATE_PROJECT")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white">
+                          <Folder className="w-3.5 h-3.5" /> Novo Projeto
+                        </button>
+                      )}
+                      {msg.actions.includes("STOP_TIMER") && (
+                        <button onClick={() => {
+                          const active = execucoes.find(e => e.timerStart);
+                          if (active) {
+                            const timeSpent = Math.floor((Date.now() - active.timerStart) / 1000);
+                            updateExecucao(active.id, { tempoGasto: (active.tempoGasto || 0) + timeSpent, timerStart: null });
+                            setMessages(prev => [...prev, { role: "ai", content: `Pronto! O timer da demanda **${active.titulo}** foi pausado e o tempo foi salvo com sucesso. ✅` }]);
+                          }
+                        }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all border-red-500/30 text-red-600 hover:bg-red-500 hover:text-white">
+                          <PauseCircle className="w-3.5 h-3.5" /> Parar Timer
+                        </button>
+                      )}
+                      {msg.actions.includes("GOTO_DEMANDS") && (
+                        <button onClick={() => router.push("/execucoes")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all border-blue-500/30 text-blue-600 hover:bg-blue-500 hover:text-white">
+                          <LayoutGrid className="w-3.5 h-3.5" /> Central de Demandas <ChevronRight className="w-3 h-3 opacity-50" />
+                        </button>
+                      )}
+                      {msg.actions.includes("GOTO_REPORTS") && (
+                        <button onClick={() => router.push("/")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all border-orange-500/30 text-orange-600 hover:bg-orange-500 hover:text-white">
+                          <BarChart2 className="w-3.5 h-3.5" /> Ver Dashboard Geral <ChevronRight className="w-3 h-3 opacity-50" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

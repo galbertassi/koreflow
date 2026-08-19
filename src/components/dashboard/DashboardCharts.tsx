@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { ChevronRight } from "lucide-react";
@@ -9,13 +9,27 @@ export function DashboardCharts() {
   const { configuracoes } = useStore();
   const { demands } = useDemands();
 
+  const mapDemandStatus = (status: string) => {
+    switch (status) {
+      case "PENDING": return "Pendente";
+      case "IN_PROGRESS": return "Em andamento";
+      case "COMPLETED": return "Concluída";
+      case "PAUSED": return "Pausada";
+      case "REVIEW": return "Em revisão";
+      case "CANCELLED": return "Cancelada";
+      default: return "Pendente";
+    }
+  };
+
   const statusCounts = demands.reduce((acc, exec) => {
-    const statusName = exec.status;
+    const statusName = mapDemandStatus(exec.status);
     acc[statusName] = (acc[statusName] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   const getHexFromTailwind = (twClass: string) => {
+    if (!twClass) return "#94a3b8";
+    if (twClass.startsWith("#")) return twClass;
     if (twClass.includes("emerald")) return "#10b981";
     if (twClass.includes("blue")) return "#3b82f6";
     if (twClass.includes("amber")) return "#f59e0b";

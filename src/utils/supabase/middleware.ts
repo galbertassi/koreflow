@@ -55,7 +55,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/privacidade") ||
     request.nextUrl.pathname.startsWith("/ping") ||
     request.nextUrl.pathname.startsWith("/sitemap.xml") ||
-    request.nextUrl.pathname.startsWith("/robots.txt");
+    request.nextUrl.pathname.startsWith("/robots.txt") ||
+    request.nextUrl.pathname.startsWith("/api/stripe");
 
   let session = null;
   try {

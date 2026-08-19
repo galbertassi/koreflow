@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { Search, Filter, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/hooks/use-store";
 import { useDemands } from "@/hooks/use-demands";
 import { updateDemand as updateDemandAction } from "@/app/(dashboard)/demandas/actions";
+import { DemandStatusBadge } from "@/components/dashboard/DemandStatusBadge";
 
 export function LatestDemands() {
   const { configuracoes } = useStore();
@@ -23,7 +24,7 @@ export function LatestDemands() {
       prioridadeColor: e.priority === "URGENT" ? "text-red-500 font-bold" : e.priority === "HIGH" ? "text-orange-500 font-semibold" : e.priority === "MEDIUM" ? "text-blue-500 font-medium" : "text-slate-400",
       resp: "Voc├¬",
       status: e.status,
-      statusColor: configuracoes.etiquetas.find(etq => etq.nome === e.status)?.cor || "bg-slate-100 text-slate-500 border-slate-200",
+      statusColor: (configuracoes?.etiquetas || []).find(etq => etq?.nome === e.status)?.cor || "bg-slate-100 text-slate-500 border-slate-200",
       observacao: e.description || ""
     };
   });
@@ -94,23 +95,16 @@ export function LatestDemands() {
                   </div>
                 </td>
                 <td className="py-4 px-4">
-                  <select
-                    value={row.status}
-                    onChange={(e) => {
-                      optimisticUpdate(row.id, { status: e.target.value as any });
-                      updateDemandAction(row.id, { status: e.target.value as any });
-                    }}
-                    className={`inline-flex px-2 py-1 rounded-md text-[11px] font-semibold appearance-none cursor-pointer border-none outline-none ${row.statusColor.split(' ')[0]} ${row.statusColor.split(' ')[1]}`}
-                  >
-                    {configuracoes.etiquetas.map(etq => (
-                      <option key={etq.nome} value={etq.nome}>{etq.nome}</option>
-                    ))}
-                  </select>
+                  <DemandStatusBadge 
+                    demand={{ id: row.id, status: row.status }} 
+                    optimisticUpdate={optimisticUpdate} 
+                    updateDemand={updateDemandAction} 
+                  />
                 </td>
                 <td className="py-4 px-4 align-top">
                   <textarea
-                    placeholder="Adicionar observa├º├úo..."
-                    className="bg-secondary/30 hover:bg-secondary/70 border border-transparent hover:border-border focus:border-[#8B5CF6] focus:bg-white rounded-lg p-2.5 text-[13px] text-foreground focus:outline-none transition-all w-full min-w-[250px] xl:min-w-[350px] min-h-[44px] resize-y shadow-sm"
+                    placeholder="Observação..."
+                    className="bg-secondary/30 hover:bg-secondary/70 border border-transparent hover:border-border focus:border-[#8B5CF6] focus:bg-white rounded-lg p-2.5 text-[13px] text-foreground focus:outline-none transition-all w-full min-w-[150px] min-h-[44px] resize-y shadow-sm"
                     defaultValue={row.observacao}
                     onBlur={(e) => {
                       optimisticUpdate(row.id, { description: e.target.value });

@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -34,6 +34,7 @@ export async function createDemand(data: {
   category_color?: string;
   type?: string;
   priority?: string;
+  description?: string;
 }): Promise<ActionResponse> {
   try {
     const { supabase, user, companyId } = await ensureCompanyAndEntitlement();
@@ -48,13 +49,14 @@ export async function createDemand(data: {
       type: data.type || "IN_SCOPE",
       priority: data.priority || "MEDIUM",
       status: "PENDING",
+      description: data.description,
       spent_time_seconds: 0
     }).select().single();
 
     if (error) throw error;
 
     revalidatePath("/demandas");
-    return { success: true, data: inserted };
+    return { success: true, data: JSON.parse(JSON.stringify(inserted)) };
   } catch (error: any) {
     console.error("createDemand error:", error);
     return { success: false, error: error.message };
@@ -76,7 +78,7 @@ export async function updateDemand(id: string, updates: any): Promise<ActionResp
     if (error) throw error;
 
     revalidatePath("/demandas");
-    return { success: true, data: updated };
+    return { success: true, data: JSON.parse(JSON.stringify(updated)) };
   } catch (error: any) {
     console.error("updateDemand error:", error);
     return { success: false, error: error.message };
@@ -100,10 +102,25 @@ export async function deleteDemand(id: string): Promise<ActionResponse> {
 
 export async function playDemand(id: string): Promise<ActionResponse> {
   try {
-    const { supabase } = await ensureCompanyAndEntitlement();
+    const { supabase, user } = await ensureCompanyAndEntitlement();
 
-    // Call the transactional RPC
-    const { error } = await supabase.rpc("play_demand", { p_demand_id: id });
+    // Check if there is an active timer
+    const { data: active } = await supabase
+      .from("kore_demand_time_logs")
+      .select("id")
+      .eq("user_id", user.id)
+      .is("ended_at", null)
+      .maybeSingle();
+
+    if (active) {
+      await supabase.from("kore_demand_time_logs").update({ ended_at: new Date().toISOString() }).eq("id", active.id);
+    }
+
+    const { error } = await supabase.from("kore_demand_time_logs").insert({
+      demand_id: id,
+      user_id: user.id
+    });
+    
     if (error) throw error;
 
     revalidatePath("/demandas");
@@ -114,12 +131,36 @@ export async function playDemand(id: string): Promise<ActionResponse> {
   }
 }
 
-export async function pauseDemand(id: string): Promise<ActionResponse> {
+export async function pauseDemand(id: string, additionalSeconds?: number): Promise<ActionResponse> {
   try {
-    const { supabase } = await ensureCompanyAndEntitlement();
+    const { supabase, user } = await ensureCompanyAndEntitlement();
 
-    const { error } = await supabase.rpc("pause_demand", { p_demand_id: id });
-    if (error) throw error;
+    const { data: active } = await supabase
+      .from("kore_demand_time_logs")
+      .select("*")
+      .eq("demand_id", id)
+      .eq("user_id", user.id)
+      .is("ended_at", null)
+      .maybeSingle();
+
+    let secondsToAdd = additionalSeconds || 0;
+
+    if (active) {
+      const endedAt = new Date();
+      const startedAt = new Date(active.started_at);
+      const calculated = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+      if (calculated > 0) secondsToAdd = calculated;
+
+      await supabase.from("kore_demand_time_logs").update({ ended_at: endedAt.toISOString() }).eq("id", active.id);
+    }
+
+    const { data: demand } = await supabase.from("kore_demands").select("spent_time_seconds").eq("id", id).single();
+    if (demand) {
+      const newTime = (demand.spent_time_seconds || 0) + secondsToAdd;
+      await supabase.from("kore_demands").update({
+        spent_time_seconds: newTime
+      }).eq("id", id);
+    }
 
     revalidatePath("/demandas");
     return { success: true };
@@ -140,6 +181,34 @@ export async function completeDemand(id: string): Promise<ActionResponse> {
     return { success: true };
   } catch (error: any) {
     console.error("completeDemand error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function resetDemandTime(id: string): Promise<ActionResponse> {
+  try {
+    const { supabase, user } = await ensureCompanyAndEntitlement();
+
+    const { data: active } = await supabase
+      .from("kore_demand_time_logs")
+      .select("*")
+      .eq("demand_id", id)
+      .eq("user_id", user.id)
+      .is("ended_at", null)
+      .maybeSingle();
+
+    if (active) {
+      await supabase.from("kore_demand_time_logs").update({ ended_at: new Date().toISOString() }).eq("id", active.id);
+    }
+
+    await supabase.from("kore_demands").update({
+      spent_time_seconds: 0
+    }).eq("id", id);
+
+    revalidatePath("/demandas");
+    return { success: true };
+  } catch (error: any) {
+    console.error("resetDemandTime error:", error);
     return { success: false, error: error.message };
   }
 }

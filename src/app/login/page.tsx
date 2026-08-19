@@ -1,23 +1,24 @@
 "use client";
 
-import { login } from "./actions";
+import { login, signup } from "./actions";
 import Image from "next/image";
 import { useState, use } from "react";
 
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; intent?: string; plan?: string }>;
 }) {
   const params = use(searchParams);
   const [emailFocus, setEmailFocus] = useState(false);
   const [passFocus, setPassFocus] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
 
   return (
     <div
       className="min-h-screen w-full relative overflow-hidden flex flex-col items-center justify-center p-4 bg-[#020202]"
     >
-      {/* Background Imagem - Marca D'Ã¡gua */}
+      {/* Background Imagem - Marca D'água */}
       <div 
         className="absolute inset-0 z-0 opacity-100"
         style={{
@@ -31,7 +32,7 @@ export default function LoginPage({
       {/* Vidro Escuro por cima do background para dar profundidade */}
       <div className="absolute inset-0 z-0 bg-black/20" />
 
-      {/* ðŸ”® Fundo decorativo animado ðŸ”® */}
+      {/* 🔮 Fundo decorativo animado 🔮 */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden mix-blend-screen" aria-hidden="true">
         
         {/* Luz roxa central pulsante */}
@@ -80,7 +81,7 @@ export default function LoginPage({
         `}</style>
       </div>
 
-      {/* ConteÃºdo Central */}
+      {/* Conteúdo Central */}
       <div className="relative z-10 w-full max-w-[400px]">
         {/* LOGO SUPERIOR */}
         <div className="mb-10 text-center">
@@ -112,17 +113,36 @@ export default function LoginPage({
             <div className="space-y-8">
               <div className="text-center space-y-2">
                 <h1 className="text-[26px] font-semibold text-white tracking-tight">
-                  Bem-vindo de volta
+                  {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
                 </h1>
                 <p className="text-[14px] text-[#A0A0A0] font-medium tracking-wide">
-                  Acesse seu workspace
+                  {isLogin ? "Acesse seu workspace" : "Preencha seus dados para começar"}
                 </p>
               </div>
 
-              <form action={login} className="space-y-5">
+              <form id="auth-form" action={isLogin ? login : signup} className="space-y-5">
+                {params?.intent && <input type="hidden" name="intent" value={params.intent} />}
+                {params?.plan && <input type="hidden" name="plan" value={params.plan} />}
                 
                 {/* Inputs Glass */}
                 <div className="space-y-4">
+                  {!isLogin && (
+                    <div className="relative group">
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        required={!isLogin}
+                        placeholder="Seu nome"
+                        className="w-full h-[52px] px-4 rounded-xl text-[14px] text-white font-medium placeholder:text-[#666666] transition-all duration-300 outline-none"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      />
+                    </div>
+                  )}
+
                   <div className="relative group">
                     <input
                       id="email"
@@ -147,7 +167,7 @@ export default function LoginPage({
                       name="password"
                       type="password"
                       required
-                      placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                      placeholder="••••••••"
                       onFocus={() => setPassFocus(true)}
                       onBlur={() => setPassFocus(false)}
                       className="w-full h-[52px] px-4 rounded-xl text-[14px] text-white font-medium placeholder:text-[#666666] transition-all duration-300 outline-none"
@@ -158,17 +178,34 @@ export default function LoginPage({
                       }}
                     />
                   </div>
+
+                  {!isLogin && (
+                    <div className="relative group">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        required={!isLogin}
+                        placeholder="Repetir senha"
+                        className="w-full h-[52px] px-4 rounded-xl text-[14px] text-white font-medium placeholder:text-[#666666] transition-all duration-300 outline-none"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Erro */}
-                {params?.error && (
+                {(params?.error || params?.message) && (
                   <p className="text-xs text-center px-3 py-2 rounded-lg"
                     style={{ color: "#F87171", background: "rgba(220,38,38,0.1)" }}>
-                    {params.error.replace(/_/g, " ")}
+                    {(params.error || params.message)?.replace(/_/g, " ")}
                   </p>
                 )}
 
-                {/* BotÃ£o */}
+                {/* Botão Principal */}
                 <button
                   type="submit"
                   className="w-full h-[52px] rounded-xl text-[14px] font-semibold text-white transition-all duration-300 relative group overflow-hidden"
@@ -177,7 +214,7 @@ export default function LoginPage({
                   }}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    Entrar
+                    {isLogin ? "Entrar" : "Criar conta"}
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1">
                       <line x1="5" y1="12" x2="19" y2="12"></line>
                       <polyline points="12 5 19 12 12 19"></polyline>
@@ -185,22 +222,38 @@ export default function LoginPage({
                   </span>
                   <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </button>
-              </form>
-
-              {/* Links */}
-              <div className="pt-2 flex flex-col items-center gap-4">
-                <a href="https://flow.koredigital.com.br" className="w-full h-[52px] flex items-center justify-center rounded-xl text-[14px] font-semibold text-white transition-all duration-300 border border-white/10 hover:bg-white/10">
-                  Voltar para a página
-                </a>
-                <div className="flex w-full justify-between px-2">
-                  <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
-                    Criar conta
-                  </a>
-                  <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
-                    Esqueceu a senha?
+                
+                {/* Links inside form */}
+                <div className="pt-2 flex flex-col items-center gap-4">
+                  <div className="flex w-full justify-between px-2">
+                    {isLogin ? (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsLogin(false)} 
+                        className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium"
+                      >
+                        Criar conta
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsLogin(true)} 
+                        className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium"
+                      >
+                        Já tem conta? Entrar
+                      </button>
+                    )}
+                    {isLogin && (
+                      <a href="#" className="text-[13px] text-[#888888] hover:text-white transition-colors font-medium">
+                        Esqueceu a senha?
+                      </a>
+                    )}
+                  </div>
+                  <a href="https://flow.koredigital.com.br" className="w-full h-[52px] flex items-center justify-center rounded-xl text-[14px] font-semibold text-white transition-all duration-300 border border-white/10 hover:bg-white/10">
+                    Voltar para a página
                   </a>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

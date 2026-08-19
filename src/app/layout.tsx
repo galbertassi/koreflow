@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://flow.koredigital.com.br"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://flow.koredigital.com.br"),
   title: "KORE Flow | Nunca mais perca uma demanda de trabalho",
   description: "Centralize demandas do WhatsApp, e-mail, reuniões e ligações em um único lugar. Organize prioridades, acompanhe o tempo investido e prove sua produtividade com IA.",
   keywords: ["gestão de tarefas", "marketing", "gerenciador de projetos", "kore flow", "kore digital", "produtividade", "organização", "fluxo de trabalho"],

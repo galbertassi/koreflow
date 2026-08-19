@@ -7,6 +7,7 @@ import Image from "next/image";
 import { HeroSimulation } from "@/components/landing/simulation/HeroSimulation";
 
 const getAppUrl = () => {
+  if (typeof window !== 'undefined') return window.location.origin;
   const url = process.env.NEXT_PUBLIC_APP_URL || 'https://app.koredigital.com.br';
   return url.startsWith('http') ? url : `https://${url}`;
 };
@@ -24,13 +25,14 @@ export default function VendasPremiumPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: planKey }),
       });
-      const data = await res.json();
 
       if (res.status === 401 || res.status === 403) {
         // Usuário não autenticado ou sem permissão - direciona pro onboarding
-        window.location.href = `${getAppUrl()}/cadastro?intent=checkout&plan=${planKey}`;
+        window.location.href = `${getAppUrl()}/login?intent=checkout&plan=${planKey}`;
         return;
       }
+
+      const data = await res.json();
 
       if (data.url) {
         window.location.href = data.url;
@@ -379,7 +381,7 @@ export default function VendasPremiumPage() {
 
               {/* CTA */}
               <a
-                href={`${getAppUrl()}/cadastro`}
+                href={`${getAppUrl()}/login`}
                 className="
             group
 
@@ -575,7 +577,7 @@ export default function VendasPremiumPage() {
 
 
             <a
-              href={`${getAppUrl()}/cadastro`}
+              href={`${getAppUrl()}/login`}
               className="
           inline-flex
 
@@ -979,7 +981,7 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Calendário & Etiquetas</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-green-400 mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Acesso Web</span></li>
               </ul>
-              <a href={`${getAppUrl()}/cadastro`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
+              <a href={`${getAppUrl()}/login`} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-lg font-bold text-sm text-center transition-all">
                 Começar Agora
               </a>
             </div>
@@ -1002,21 +1004,22 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Histórico Completo</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Timer Inteligente</span></li>
               </ul>
-              <a
-                href={`${getAppUrl()}/cadastro?intent=checkout&plan=PRO_MONTHLY`}
-                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+              <button
+                onClick={() => handleCheckout("PRO_MONTHLY")}
+                disabled={loadingPlan === "PRO_MONTHLY"}
+                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Assinar Mensal
-              </a>
+                {loadingPlan === "PRO_MONTHLY" ? <Loader2 className="w-5 h-5 animate-spin" /> : "Assinar Mensal"}
+              </button>
             </div>
 
-            {/* PRO ANUAL */}
+            {/* PLUS ANUAL */}
             <div className="bg-[#111] border border-[#8B5CF6]/80 rounded-2xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.25)] flex flex-col transform md:-translate-y-8">
               <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#C4B5FD] to-[#8B5CF6]"></div>
               <div className="absolute top-4 right-4 bg-[#8B5CF6] text-white text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full">
                 Recomendado (16% OFF)
               </div>
-              <h3 className="text-white text-xl font-bold mb-2 flex items-center gap-2">PRO Anual <span className="text-[#8B5CF6]">★</span></h3>
+              <h3 className="text-white text-xl font-bold mb-2 flex items-center gap-2">PLUS Anual <span className="text-[#8B5CF6]">★</span></h3>
               <p className="text-gray-400 text-sm mb-6 h-10">O maior custo-benefício para a sua operação.</p>
               <div className="mb-2">
                 <span className="text-gray-500 text-lg">R$</span>
@@ -1030,12 +1033,13 @@ export default function VendasPremiumPage() {
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Desconto de 2 meses</span></li>
                 <li className="flex items-start text-gray-300 text-sm"><Check className="w-4 h-4 text-[#8B5CF6] mr-3 mt-1 flex-shrink-0" /> <span className="leading-relaxed">Suporte Prioritário</span></li>
               </ul>
-              <a
-                href={`${getAppUrl()}/cadastro?intent=checkout&plan=PRO_ANNUAL`}
-                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+              <button
+                onClick={() => handleCheckout("PRO_ANNUAL")}
+                disabled={loadingPlan === "PRO_ANNUAL"}
+                className="w-full flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 rounded-lg font-bold text-sm text-center transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Assinar Anual
-              </a>
+                {loadingPlan === "PRO_ANNUAL" ? <Loader2 className="w-5 h-5 animate-spin" /> : "Assinar Anual"}
+              </button>
             </div>
           </div>
         </div>

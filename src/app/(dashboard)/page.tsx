@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "@/hooks/use-store";
 import {
   ClipboardList,
@@ -12,27 +13,185 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Play,
-  Pause
+  Pause,
+  Timer,
+  MessageSquare,
+  ChevronUp,
+  RotateCcw
 } from "lucide-react";
+import { DemandStatusBadge } from "@/components/dashboard/DemandStatusBadge";
+import { LiveTimer } from "@/components/dashboard/LiveTimer";
+import { LiveExecTimer } from "@/components/dashboard/LiveExecTimer";
+import { KoreAiChatWidget } from "@/components/dashboard/KoreAiChatWidget";
 import { useDemands, DemandRecord } from "@/hooks/use-demands";
 import { useDemandTimer } from "@/hooks/use-demand-timer";
-import { playDemand, pauseDemand, completeDemand } from "./demandas/actions";
+import { playDemand, pauseDemand, completeDemand, updateDemand, resetDemandTime } from "./demandas/actions";
+
+const DEMAND_STATUSES = ["Pendente", "Em andamento", "Pausada", "Em revisão", "Concluída", "Cancelada"];
+
+function ExecucaoStatusBadge({ execucao, updateExecucao }: { execucao: any, updateExecucao: any }) {
+  const [open, setOpen] = useState(false);
+  const { configuracoes } = useStore();
+  
+  const etiquetas = (configuracoes && Array.isArray(configuracoes.etiquetas)) ? configuracoes.etiquetas : [];
+  const etiqueta = etiquetas.find(e => e && e.nome === execucao?.status) || { cor: "#94a3b8" };
+  const color = etiqueta?.cor || "#94a3b8";
+
+  return (
+    <div className={`relative inline-block text-left ${open ? 'z-50' : 'z-10'}`}>
+      <button 
+        onClick={() => setOpen(!open)} 
+        style={{ backgroundColor: color, color: '#ffffff' }}
+        className="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors w-full min-w-[120px] shadow-sm hover:opacity-90"
+      >
+        {execucao?.status || "Pendente"}
+        <ChevronDown className="w-3 h-3 ml-1" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-xl shadow-lg py-1 w-40">
+            {etiquetas.map((etq) => {
+              if (!etq) return null;
+              const etqColor = etq.cor || "#94a3b8";
+              return (
+                <button
+                  key={etq.nome}
+                  onClick={() => {
+                    updateExecucao(execucao.id, { status: etq.nome });
+                    setOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-secondary/50 transition-colors flex items-center gap-2 text-foreground"
+                >
+                  <span style={{ backgroundColor: etqColor }} className={`w-2 h-2 shrink-0 rounded-full ${etq.nome !== execucao?.status ? 'opacity-30' : ''}`} />
+                  {etq.nome}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const formatTime = (totalSeconds: number) => {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
 
 export default function DashboardPage() {
-  const { execucoes, configuracoes } = useStore();
-  const { demands, optimisticUpdate } = useDemands();
-  const { activeTimer, getDisplayTime } = useDemandTimer();
+  const { execucoes, configuracoes, updateExecucao, updateConfiguracoes } = useStore();
+  const { demands, optimisticUpdate, loading: demandsLoading } = useDemands();
+  const { activeTimer, getDisplayTime, setActiveTimer } = useDemandTimer();
+  const [tick, setTick] = useState(0);
 
-  const activeDemand = demands.find(d => d.status === "IN_PROGRESS") || null;
+  const [search, setSearch] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [filterPriority, setFilterPriority] = useState("Todas");
+  const [sortBy, setSortBy] = useState("recentes");
+  const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) setIsFilterOpen(false);
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) setIsSortOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const activeDemand = activeTimer ? demands.find(d => d.id === activeTimer.demand_id) : null;
+  const activeExec = execucoes.find(e => e.timerStart != null) || null;
+  const isAnyActive = !!activeDemand || !!activeExec;
+  
+  const [lastActive, setLastActive] = useState<{ id: string, title: string, time: string } | null>(null);
+
+  const handleReorder = (id: string, direction: 'up' | 'down', list: any[]) => {
+    let globalOrder = configuracoes.notificacoes?.demandOrder || [];
+    if (globalOrder.length === 0) {
+      globalOrder = [...demands.map(d => d.id), ...execucoes.map(e => e.id)];
+    } else {
+      [...demands, ...execucoes].forEach(item => {
+        if (!globalOrder.includes(item.id)) globalOrder.push(item.id);
+      });
+    }
+
+    const currentIdx = globalOrder.indexOf(id);
+    if (currentIdx === -1) return;
+
+    const newGlobal = [...globalOrder];
+    const filteredIdx = list.findIndex(e => e.id === id);
+    if (filteredIdx === -1) return;
+    
+    if (direction === 'up' && filteredIdx > 0) {
+      const targetId = list[filteredIdx - 1].id;
+      const targetGlobalIdx = newGlobal.indexOf(targetId);
+      if (targetGlobalIdx !== -1) {
+        [newGlobal[currentIdx], newGlobal[targetGlobalIdx]] = [newGlobal[targetGlobalIdx], newGlobal[currentIdx]];
+      }
+    } else if (direction === 'down' && filteredIdx < list.length - 1) {
+      const targetId = list[filteredIdx + 1].id;
+      const targetGlobalIdx = newGlobal.indexOf(targetId);
+      if (targetGlobalIdx !== -1) {
+        [newGlobal[currentIdx], newGlobal[targetGlobalIdx]] = [newGlobal[targetGlobalIdx], newGlobal[currentIdx]];
+      }
+    }
+    
+    updateConfiguracoes({ notificacoes: { ...configuracoes.notificacoes, demandOrder: newGlobal } });
+  };
+
+  const handlePauseActive = () => {
+    if (activeDemand) {
+      let addSec = 0;
+      if (activeTimer && activeTimer.started_at) {
+        addSec = Math.floor((Date.now() - new Date(activeTimer.started_at).getTime()) / 1000);
+      }
+      const newSpentTime = (activeDemand.spent_time_seconds || 0) + addSec;
+      setLastActive({ id: activeDemand.id, title: activeDemand.title, time: formatTime(newSpentTime) });
+      setActiveTimer(null);
+      optimisticUpdate(activeDemand.id, { spent_time_seconds: newSpentTime });
+      pauseDemand(activeDemand.id, addSec);
+    }
+    if (activeExec) {
+      const timeSpentThisSession = activeExec.timerStart ? Math.floor((Date.now() - activeExec.timerStart) / 1000) : 0;
+      setLastActive({ id: activeExec.id, title: activeExec.titulo, time: getExecucaoTimeStatic(activeExec) });
+      updateExecucao(activeExec.id, { 
+        tempoGasto: (activeExec.tempoGasto || 0) + timeSpentThisSession,
+        timerStart: null 
+      });
+    }
+  };
+
+  const getExecucaoTimeStatic = (e: any) => {
+    let total = e.tempoGasto || 0;
+    if (e.timerStart) {
+      total += Math.floor((Date.now() - e.timerStart) / 1000);
+    }
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const handlePlay = async (demand: DemandRecord) => {
-    optimisticUpdate(demand.id, { status: "IN_PROGRESS" });
+    setActiveTimer({ id: "temp", demand_id: demand.id, started_at: new Date().toISOString() });
     await playDemand(demand.id);
   };
 
   const handlePause = async (demand: DemandRecord) => {
-    optimisticUpdate(demand.id, { status: "PAUSED" });
-    await pauseDemand(demand.id);
+    let addSec = 0;
+    if (activeTimer && activeTimer.demand_id === demand.id && activeTimer.started_at) {
+      addSec = Math.floor((Date.now() - new Date(activeTimer.started_at).getTime()) / 1000);
+    }
+    const newSpentTime = (demand.spent_time_seconds || 0) + addSec;
+    setActiveTimer(null);
+    optimisticUpdate(demand.id, { spent_time_seconds: newSpentTime });
+    await pauseDemand(demand.id, addSec);
   };
 
   const handleComplete = async (demand: DemandRecord) => {
@@ -40,21 +199,51 @@ export default function DashboardPage() {
     await completeDemand(demand.id);
   };
 
-  const total = execucoes.length || 1; 
-  const entregues = execucoes.filter(e => e.status === "Concluida").length;
-  const producao = execucoes.filter(e => e.status === "Em producao" || e.status === "Revisao").length;
-  const aguardando = execucoes.filter(e => e.status === "Aguardando").length;
-  
-  // Vamos definir 'Demandas Extras' como as execucoes com categoria 'Extra' ou algo que mostre que fugiu do escopo.
-  // Como nao temos essa flag especifica agora, usaremos a Categoria "Urgente" se houver, ou apenas zerar.
+  const sortFn = (a: any, b: any) => {
+    if (sortBy === "alfabetico") return (a.title || a.titulo || "").localeCompare(b.title || b.titulo || "");
+    if (sortBy === "prioridade") {
+      const pOrder: Record<string, number> = { "Alta": 1, "Média": 2, "Media": 2, "Baixa": 3 };
+      return (pOrder[a.priority || a.prioridade] || 99) - (pOrder[b.priority || b.prioridade] || 99);
+    }
+    const tA = new Date(a.created_at || a.criadoEm).getTime() || a.id.length;
+    const tB = new Date(b.created_at || b.criadoEm).getTime() || b.id.length;
+    if (sortBy === "recentes") return tB - tA;
+    if (sortBy === "antigas") return tA - tB;
+    if (sortBy === "custom") {
+      const globalOrder = configuracoes.notificacoes?.demandOrder || [];
+      const tAIdx = globalOrder.indexOf(a.id);
+      const tBIdx = globalOrder.indexOf(b.id);
+      const valA = tAIdx === -1 ? 99999 : tAIdx;
+      const valB = tBIdx === -1 ? 99999 : tBIdx;
+      return valA - valB;
+    }
+    return 0;
+  };
+
+  const filteredDemands = demands.filter(d => {
+    const matchSearch = (d.title || "").toLowerCase().includes(search.toLowerCase()) || (d.client_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchPriority = filterPriority === "Todas" || d.priority === filterPriority;
+    return matchSearch && matchPriority;
+  }).sort(sortFn);
+
+  const filteredExecucoes = execucoes.filter(e => {
+    const matchSearch = (e.titulo || "").toLowerCase().includes(search.toLowerCase()) || (e.cliente || "").toLowerCase().includes(search.toLowerCase());
+    const matchPriority = filterPriority === "Todas" || e.prioridade === filterPriority;
+    return matchSearch && matchPriority;
+  }).sort(sortFn);
+
+  const total = execucoes.length || 1;
+  const entregues = execucoes.filter(e => e.status === "Concluída").length;
+  const producao = execucoes.filter(e => e.status === "Em andamento" || e.status === "Em revisão").length;
+  const aguardando = execucoes.filter(e => e.status === "Pendente" || e.status === "Pausada").length;
+
   const demandasExtras = execucoes.filter(e => e.tipoPlanejamento === "Demanda Extra" || e.categoria.toLowerCase().includes("urgente") || e.categoria.toLowerCase().includes("extra"));
   const extras = demandasExtras.length;
-  
+
   const risco = execucoes.filter(e => e.status === "Em Risco").length;
 
   const pct = (val: number) => execucoes.length === 0 ? "0.0%" : ((val / total) * 100).toFixed(1) + "%";
 
-  // Distribuicao de Atividades
   const catPlanejamento = execucoes.filter(e => e.categoria.toLowerCase() === "planejamento").length;
   const catCampanhas = execucoes.filter(e => e.categoria.toLowerCase() === "campanhas").length;
   const catConteudo = execucoes.filter(e => e.categoria.toLowerCase() === "conteúdo" || e.categoria.toLowerCase() === "conteudo").length;
@@ -63,7 +252,6 @@ export default function DashboardPage() {
 
   const maxCat = Math.max(catPlanejamento, catCampanhas, catConteudo, catRelatorios, catOperacional, 1);
 
-  // Pie chart calculation
   const getStrokeDashArray = (val: number, totalVal: number, circumference: number) => {
     return `${(val / totalVal) * circumference} ${circumference}`;
   };
@@ -73,24 +261,39 @@ export default function DashboardPage() {
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
 
-  let offsetAcc = 0;
-  const totalValChart = entregues + producao + aguardando + extras + risco || 1;
-  const chartData = [
-    { label: "Entregues", value: entregues, color: "#10b981", offset: 0 },
-    { label: "Em Producao", value: producao, color: "#3b82f6", offset: entregues },
-    { label: "Aguardando Inicio", value: aguardando, color: "#eab308", offset: entregues + producao },
-    { label: "Demandas Extras", value: extras, color: "#f97316", offset: entregues + producao + aguardando },
-    { label: "Em Risco", value: risco, color: "#ef4444", offset: entregues + producao + aguardando + extras },
-  ];
+  const mapDemandStatusForChart = (status: string) => {
+    switch (status) {
+      case "PENDING": return "Pendente";
+      case "IN_PROGRESS": return "Em andamento";
+      case "COMPLETED": return "Concluída";
+      case "PAUSED": return "Pausada";
+      case "REVIEW": return "Em revisão";
+      case "CANCELLED": return "Cancelada";
+      default: return status;
+    }
+  };
+
+  const statusCounts = [...demands, ...execucoes].reduce((acc, item) => {
+    const statusName = mapDemandStatusForChart(item.status);
+    acc[statusName] = (acc[statusName] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  let currentOffset = 0;
+  const chartData = (configuracoes?.etiquetas || []).map(etq => {
+    if (!etq) return null;
+    const val = statusCounts[etq.nome] || 0;
+    const res = { label: etq.nome, value: val, color: etq.cor || "#8B5CF6", offset: currentOffset };
+    currentOffset += val;
+    return res;
+  }).filter((d): d is NonNullable<typeof d> => d !== null && d.value > 0);
+  
+  const totalValChart = currentOffset || 1;
 
   return (
     <div className="flex flex-col min-h-full space-y-6 max-w-[1400px] mx-auto pb-10">
-      
-      {/* Removido o Header daqui, pois ja esta no layout.tsx (Header.tsx) */}
 
-      {/* Cards - 6 columns */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-2">
-        {/* Atividades Totais */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center">
@@ -99,10 +302,11 @@ export default function DashboardPage() {
             <span className="text-[10px] font-semibold text-muted-foreground uppercase">Atividades Totais</span>
           </div>
           <h3 className="text-3xl font-bold text-foreground mb-1">{execucoes.length}</h3>
-          <span className="text-xs font-semibold text-emerald-500">ï¿½  {execucoes.length > 0 ? "Atualizado" : "Novo"}</span>
+          <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> {execucoes.length > 0 ? "Atualizado" : "Novo"}
+          </span>
         </div>
 
-        {/* Entregues */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -114,7 +318,6 @@ export default function DashboardPage() {
           <span className="text-xs font-semibold text-emerald-500">{pct(entregues)} do total</span>
         </div>
 
-        {/* Em Produção */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -126,7 +329,6 @@ export default function DashboardPage() {
           <span className="text-xs font-semibold text-blue-500">{pct(producao)} do total</span>
         </div>
 
-        {/* Aguardando Início */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -138,7 +340,6 @@ export default function DashboardPage() {
           <span className="text-xs font-semibold text-amber-500">{pct(aguardando)} do total</span>
         </div>
 
-        {/* Demandas Extras */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
@@ -150,7 +351,6 @@ export default function DashboardPage() {
           <span className="text-xs font-semibold text-orange-500">{pct(extras)} do total</span>
         </div>
 
-        {/* Em Risco */}
         <div className="bg-white rounded-2xl border border-border/50 p-5 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -163,16 +363,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Middle Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Fluxo de Execução (Pie Chart) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-2 gap-6">
+
         <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
           <h3 className="text-base font-semibold text-foreground mb-6">Fluxo de Execução</h3>
           <div className="flex-1 flex items-center justify-center gap-8">
             <div className="relative w-40 h-40">
               <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90 transform">
-                {execucoes.length === 0 ? (
+                {chartData.length === 0 ? (
                   <circle cx="80" cy="80" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="25" />
                 ) : (
                   chartData.map((d, i) => {
@@ -209,7 +407,6 @@ export default function DashboardPage() {
           <button className="text-xs font-medium text-muted-foreground text-left mt-4 hover:text-foreground">Ver detalhes {'>'}</button>
         </div>
 
-        {/* Distribuição de Atividades */}
         <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
           <h3 className="text-base font-semibold text-foreground mb-6">Distribuição de Atividades</h3>
           <div className="flex-1 flex flex-col justify-center gap-4">
@@ -232,102 +429,141 @@ export default function DashboardPage() {
           <button className="text-xs font-medium text-muted-foreground text-left mt-4 hover:text-foreground">Ver detalhes {'>'}</button>
         </div>
 
-        {/* Demandas Extras */}
-        <div className="bg-white rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-semibold text-foreground">Demandas Extras</h3>
-            <button className="text-xs font-medium text-muted-foreground flex items-center gap-1 hover:text-foreground">
-              Ver todas <ChevronDown className="w-3 h-3" />
-            </button>
+        <div className="bg-[#8B5CF6] text-white rounded-2xl p-6 flex flex-col justify-between shadow-lg relative overflow-hidden print:hidden">
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              <Timer className="w-5 h-5 text-white/80" /> Timer {isAnyActive ? "Ativo" : "Parado"}
+            </h3>
+            {isAnyActive ? (
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded">Em andamento</span>
+            ) : lastActive ? (
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded">Pausado</span>
+            ) : null}
           </div>
-          <div className="flex-1 flex flex-col gap-4">
-            {demandasExtras.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-                Nenhuma demanda extra.
-              </div>
-            ) : (
-              demandasExtras.slice(0,4).map((demanda, i) => (
-                <div key={i} className="flex items-center justify-between pb-3 border-b border-border/50 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                    <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{demanda.titulo}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{demanda.criadoEm}</span>
-                </div>
-              ))
+          
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center py-4">
+            <p className="text-sm font-medium text-white/80 mb-1 truncate max-w-full text-center px-4">
+              {isAnyActive 
+                ? (activeDemand ? activeDemand.title : activeExec ? activeExec.titulo : "")
+                : (lastActive ? lastActive.title : "Nenhuma tarefa ativa")}
+            </p>
+            <span className="text-5xl font-mono font-bold tracking-tight shadow-sm mt-2">
+              {isAnyActive 
+                ? (activeDemand ? <LiveTimer demandId={activeDemand.id} spentTime={activeDemand.spent_time_seconds || 0} activeTimer={activeTimer} /> : activeExec ? <LiveExecTimer execucao={activeExec} /> : "00:00:00")
+                : (lastActive ? lastActive.time : "00:00:00")}
+            </span>
+          </div>
+
+          <div className="relative z-10 mt-4 flex items-center justify-center gap-3">
+            {isAnyActive && (
+              <button onClick={handlePauseActive} className="flex items-center justify-center gap-2 bg-white hover:bg-white/90 text-[#8B5CF6] transition-colors px-6 py-3 rounded-xl text-sm font-semibold flex-1 max-w-[200px]">
+                <Pause className="w-4 h-4" /> Parar Tempo
+              </button>
             )}
-          </div>
-          <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
-            <span className="text-sm font-bold text-foreground">Total</span>
-            <span className="text-sm font-bold text-orange-500">{extras}</span>
+            {!isAnyActive && lastActive && (
+              <button onClick={() => setLastActive(null)} className="flex items-center justify-center gap-2 bg-white hover:bg-white/90 text-[#8B5CF6] transition-colors px-6 py-3 rounded-xl text-sm font-semibold flex-1 max-w-[200px]">
+                <CheckCircle2 className="w-4 h-4" /> Registrar Tempo
+              </button>
+            )}
+            {(isAnyActive || lastActive) && (
+              <button 
+                onClick={async () => {
+                  const targetId = activeDemand?.id || lastActive?.id;
+                  if (targetId) {
+                    setActiveTimer(null);
+                    setLastActive(null);
+                    optimisticUpdate(targetId, { spent_time_seconds: 0 });
+                    await resetDemandTime(targetId);
+                  } else if (activeExec) {
+                    updateExecucao(activeExec.id, { tempoGasto: 0, timerStart: null });
+                    setLastActive(null);
+                  }
+                }}
+                title="Zerar cronômetro"
+                className="flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium transition-colors backdrop-blur-sm"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
       </div>
 
-      {activeDemand && (
-        <div className="bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-sm">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
-          <div className="flex items-center gap-4 w-full">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <Play className="w-5 h-5 text-emerald-600 fill-emerald-600 ml-0.5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-emerald-600 mb-1 uppercase tracking-wider">Demanda em Andamento</p>
-              <h3 className="text-lg font-semibold text-foreground truncate">{activeDemand.title}</h3>
-              <p className="text-sm text-muted-foreground truncate">{activeDemand.client_name || "Sem cliente"} • {activeDemand.category_name || "Sem categoria"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-            <div className="flex flex-col items-end mr-4">
-              <span className="text-2xl font-bold text-foreground font-mono">{getDisplayTime(activeDemand.id, activeDemand.spent_time_seconds)}</span>
-              <span className="text-xs text-muted-foreground">Tempo investido</span>
-            </div>
-            <button onClick={() => handlePause(activeDemand)} className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm">
-              <Pause className="w-4 h-4" />
-            </button>
-            <button onClick={() => handleComplete(activeDemand)} className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm">
-              <CheckCircle2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Central de Atividades Table */}
-      <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl border border-border/50 shadow-sm flex flex-col mb-16">
         <div className="p-6 border-b border-border/50 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">Central de Atividades</h3>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Buscar atividade..." className="w-64 pl-9 pr-4 py-2 bg-secondary/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]" />
+              <input type="text" placeholder="Buscar atividade..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-64 pl-9 pr-4 py-2 bg-secondary/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]" />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-border bg-white rounded-xl text-sm font-medium hover:bg-secondary/20 transition-colors">
-              <SlidersHorizontal className="w-4 h-4" /> Filtros
-            </button>
+            <div className="relative" ref={filterRef}>
+              <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-2 px-4 py-2 border border-border bg-white rounded-xl text-sm font-medium hover:bg-secondary/20 transition-colors">
+                <SlidersHorizontal className="w-4 h-4" /> Filtros {filterPriority !== "Todas" && <span className="bg-[#8B5CF6] text-white text-[10px] px-1.5 py-0.5 rounded-md ml-1">{filterPriority}</span>}
+              </button>
+              {isFilterOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-border rounded-xl shadow-lg p-2 z-50">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Prioridade</p>
+                  {["Todas", "Alta", "Média", "Baixa"].map(p => (
+                    <button key={p} onClick={() => { setFilterPriority(p); setIsFilterOpen(false); }} className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors ${filterPriority === p ? "bg-[#8B5CF6]/10 text-[#8B5CF6] font-medium" : "hover:bg-secondary text-foreground"}`}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="relative" ref={sortRef}>
+              <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-2 px-3 py-2 border border-border rounded-xl text-sm font-medium bg-white hover:bg-secondary/30 transition-colors">
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" /> Ordenar
+              </button>
+              {isSortOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-border rounded-xl shadow-lg p-2 z-50">
+                  {[
+                    { id: "custom", label: "Ordem Customizada" },
+                    { id: "recentes", label: "Mais recentes" },
+                    { id: "antigas", label: "Mais antigas" },
+                    { id: "prioridade", label: "Prioridade" },
+                    { id: "alfabetico", label: "Alfabético" }
+                  ].map(opt => (
+                    <button key={opt.id} onClick={() => { setSortBy(opt.id); setIsSortOpen(false); }} className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors ${sortBy === opt.id ? "bg-[#8B5CF6]/10 text-[#8B5CF6] font-medium" : "hover:bg-secondary text-foreground"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
+
+        <div className="overflow-visible min-h-[300px]">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-secondary/30 text-xs font-semibold text-muted-foreground border-b border-border/50">
-                <th className="py-3 px-6 whitespace-nowrap">ID</th>
-                <th className="py-3 px-4 whitespace-nowrap">Solicitação</th>
+                {sortBy === "custom" && <th className="py-3 px-2 w-[30px]"></th>}
+                <th className="py-3 px-6 whitespace-nowrap">Cliente</th>
                 <th className="py-3 px-4 whitespace-nowrap w-[200px]">Atividade</th>
-                <th className="py-3 px-4 whitespace-nowrap">Cliente</th>
-                <th className="py-3 px-4 whitespace-nowrap">Categoria</th>
-                <th className="py-3 px-4 whitespace-nowrap">Planejamento</th>
+                <th className="py-3 px-4 whitespace-nowrap">Demanda</th>
                 <th className="py-3 px-4 whitespace-nowrap text-center">Prioridade</th>
-                <th className="py-3 px-4 whitespace-nowrap">Entrega</th>
-                <th className="py-3 px-4 whitespace-nowrap">Responsável</th>
                 <th className="py-3 px-4 whitespace-nowrap text-center">Status</th>
-                <th className="py-3 px-6 whitespace-nowrap text-right">Progresso</th>
+                <th className="py-3 px-4 whitespace-nowrap min-w-[300px]">Observação</th>
                 <th className="py-3 px-4 whitespace-nowrap text-center">Timer</th>
               </tr>
             </thead>
             <tbody>
-              {demands.length === 0 && execucoes.length === 0 ? (
+              {demandsLoading ? (
+                <tr>
+                  <td colSpan={12} className="py-12 text-center text-sm font-semibold text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+                      Carregando atividades...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredDemands.length === 0 && filteredExecucoes.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="py-12 text-center text-sm text-muted-foreground">
                     Nenhuma execução encontrada. Crie uma na aba Execuções.
@@ -335,119 +571,129 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 <>
-                {demands.map((demand, idx) => (
-                  <tr key={demand.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors group">
-                    <td className="py-3 px-6 text-xs font-bold text-foreground">D{idx + 1}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(demand.created_at).toLocaleDateString("pt-BR")}</td>
-                    <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{demand.title}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{demand.client_name || "-"}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{demand.category_name || "-"}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${demand.type === "OUT_OF_SCOPE" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
-                        {demand.type === "OUT_OF_SCOPE" ? "Demanda Extra" : "No Escopo"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded">{demand.priority}</span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">-</td>
-                    <td className="py-3 px-4 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[9px] font-bold text-[#8B5CF6]">
-                        {configuracoes?.nome?.substring(0, 2).toUpperCase() || "VO"}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-                        demand.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
-                        demand.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
-                        demand.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-500' : 'bg-gray-500/10 text-gray-500'
-                      }`}>
-                        {demand.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-6">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="text-[10px] font-bold text-foreground w-8 text-right">
-                          {demand.status === 'COMPLETED' ? '100%' : demand.status === 'PENDING' ? '0%' : '50%'}
-                        </span>
-                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div className={`h-full ${demand.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-[#1e1b4b]'}`} 
-                               style={{ width: demand.status === 'COMPLETED' ? '100%' : demand.status === 'PENDING' ? '0%' : '50%' }}></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-xs font-mono font-medium text-foreground mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                           {getDisplayTime(demand.id, demand.spent_time_seconds)}
-                        </span>
-                        {demand.status !== "IN_PROGRESS" && demand.status !== "COMPLETED" && (
-                          <button onClick={(e) => { e.stopPropagation(); handlePlay(demand); }} className="w-7 h-7 rounded-lg bg-white border border-border flex items-center justify-center hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition-colors shadow-sm text-muted-foreground">
-                            <Play className="w-3 h-3" />
-                          </button>
-                        )}
-                        {demand.status === "IN_PROGRESS" && (
-                          <button onClick={(e) => { e.stopPropagation(); handlePause(demand); }} className="w-7 h-7 rounded-lg bg-white border border-border flex items-center justify-center hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm text-muted-foreground">
-                            <Pause className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {execucoes.slice(0, 5).map((e, idx) => (
-                  <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors">
-                    <td className="py-3 px-6 text-xs font-bold text-foreground">00{idx + 1}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{e.criadoEm}</td>
-                    <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{e.titulo}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{e.cliente || "Cliente A"}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{e.categoria}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${e.tipoPlanejamento === "Demanda Extra" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
-                        {e.tipoPlanejamento || "Previsto"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded">Média</span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">10/05/2025</td>
-                    <td className="py-3 px-4 flex items-center gap-2">
-                      {configuracoes?.foto ? (
-                        <img src={configuracoes.foto} alt="Perfil" className="w-6 h-6 rounded-full object-cover border border-border" />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[9px] font-bold text-[#8B5CF6]">
-                          {configuracoes?.nome?.substring(0, 2).toUpperCase() || "GA"}
-                        </div>
+                  {filteredDemands.map((demand, idx) => (
+                    <tr key={demand.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors group">
+                      {sortBy === "custom" && (
+                        <td className="py-3 px-2 w-[30px]">
+                          <div className="flex flex-col gap-1 items-center justify-center text-muted-foreground">
+                            <button onClick={() => handleReorder(demand.id, 'up', filteredDemands)} className="hover:bg-secondary rounded p-0.5"><ChevronUp className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleReorder(demand.id, 'down', filteredDemands)} className="hover:bg-secondary rounded p-0.5"><ChevronDown className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
                       )}
-                      <span className="text-xs text-foreground truncate max-w-[80px]">
-                        {configuracoes?.nome?.split(' ')[0] || "Você"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-                        e.status === 'Concluida' ? 'bg-emerald-500/10 text-emerald-500' :
-                        e.status === 'Em producao' ? 'bg-blue-500/10 text-blue-500' :
-                        e.status === 'Em Risco' ? 'bg-red-500/10 text-red-500' :
-                        e.status === 'Revisao' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'bg-amber-500/10 text-amber-500'
-                      }`}>
-                        {e.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-6">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="text-[10px] font-bold text-foreground w-8 text-right">
-                          {e.status === 'Concluida' ? '100%' : e.status === 'Aguardando' ? '0%' : '50%'}
+                      <td className="py-3 px-6 text-sm font-semibold text-foreground whitespace-nowrap">{demand.client_name || "-"}</td>
+                      <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{demand.title}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${demand.type === "OUT_OF_SCOPE" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
+                          {demand.type === "OUT_OF_SCOPE" ? "Demanda Extra" : "Prevista"}
                         </span>
-                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div className={`h-full ${e.status === 'Concluida' ? 'bg-emerald-500' : 'bg-[#1e1b4b]'}`} 
-                               style={{ width: e.status === 'Concluida' ? '100%' : e.status === 'Aguardando' ? '0%' : '50%' }}></div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${demand.priority === "HIGH" || demand.priority === "URGENT" ? "text-red-500 bg-red-500/10" : demand.priority === "LOW" ? "text-emerald-500 bg-emerald-500/10" : "text-blue-500 bg-blue-500/10"}`}>
+                          {demand.priority === "HIGH" ? "Alta" : demand.priority === "LOW" ? "Baixa" : demand.priority === "URGENT" ? "Urgente" : "Média"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <DemandStatusBadge demand={demand} optimisticUpdate={optimisticUpdate} updateDemand={updateDemand} />
+                      </td>
+                      <td className="py-3 px-4">
+                        <input 
+                          type="text" 
+                          placeholder="Observação..." 
+                          value={demand.description || ""}
+                          onChange={(e) => optimisticUpdate(demand.id, { description: e.target.value })}
+                          onBlur={async (e) => await updateDemand(demand.id, { description: e.target.value })}
+                          className="w-full bg-white border border-border focus:border-[#8B5CF6] focus:outline-none text-[12px] text-foreground rounded-lg px-3 py-1.5 transition-all shadow-sm placeholder:text-muted-foreground/60" 
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs font-mono font-bold text-foreground mr-1">
+                            <LiveTimer demandId={demand.id} spentTime={demand.spent_time_seconds || 0} activeTimer={activeTimer} />
+                          </span>
+                          {activeTimer?.demand_id === demand.id ? (
+                            <button 
+                              onClick={() => handlePause(demand)}
+                              className="print:hidden w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors shadow-sm"
+                            >
+                              <Pause className="w-4 h-4 fill-current" />
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => handlePlay(demand)}
+                              className="print:hidden w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors shadow-sm"
+                            >
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-xs text-muted-foreground">-</td>
-                  </tr>
-                ))
-                }
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {filteredExecucoes.map((row) => (
+                    <tr key={row.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/10 transition-colors group">
+                      {sortBy === "custom" && (
+                        <td className="py-3 px-2 w-[30px]">
+                          <div className="flex flex-col gap-1 items-center justify-center text-muted-foreground">
+                            <button onClick={() => handleReorder(row.id, 'up', filteredExecucoes)} className="hover:bg-secondary rounded p-0.5"><ChevronUp className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleReorder(row.id, 'down', filteredExecucoes)} className="hover:bg-secondary rounded p-0.5"><ChevronDown className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      )}
+                      <td className="py-3 px-6 text-sm font-semibold text-foreground whitespace-nowrap">{row.cliente || row.projetoId || "-"}</td>
+                      <td className="py-3 px-4 text-sm font-medium text-foreground truncate max-w-[200px]">{row.titulo}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap ${row.tipoPlanejamento === "Demanda Extra" ? "text-orange-500 bg-orange-500/10" : "text-emerald-500 bg-emerald-500/10"}`}>
+                          {row.tipoPlanejamento || "Previsto"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${row.prioridade === "Alta" ? "text-red-500 bg-red-500/10" : row.prioridade === "Baixa" ? "text-emerald-500 bg-emerald-500/10" : "text-blue-500 bg-blue-500/10"}`}>{row.prioridade || "Media"}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <ExecucaoStatusBadge execucao={row} updateExecucao={updateExecucao} />
+                      </td>
+                      <td className="py-3 px-4">
+                        <input 
+                          type="text" 
+                          placeholder="Observação..." 
+                          value={row.observacao || ""}
+                          onChange={(ev) => updateExecucao(row.id, { observacao: ev.target.value })}
+                          className="w-full bg-white border border-border focus:border-[#8B5CF6] focus:outline-none text-[12px] text-foreground rounded-lg px-3 py-1.5 transition-all shadow-sm placeholder:text-muted-foreground/60" 
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs font-mono font-bold text-foreground mr-1">
+                            <LiveExecTimer execucao={row} />
+                          </span>
+                          {row.timerStart ? (
+                            <button 
+                              onClick={() => {
+                                const timeSpentThisSession = Math.floor((Date.now() - row.timerStart!) / 1000);
+                                updateExecucao(row.id, { 
+                                  tempoGasto: (row.tempoGasto || 0) + timeSpentThisSession,
+                                  timerStart: null 
+                                });
+                              }}
+                              className="print:hidden w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors shadow-sm"
+                            >
+                              <Pause className="w-4 h-4 fill-current" />
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => updateExecucao(row.id, { timerStart: Date.now() })}
+                              className="print:hidden w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors shadow-sm"
+                            >
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                  }
                 </>
               )}
             </tbody>
@@ -468,17 +714,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Botão Flutuante KORE AI */}
-      <div className="print:hidden fixed bottom-6 right-6 z-50 animate-bounce" style={{ animationDuration: '3s' }}>
-        <a href="/kore-ai" className="group flex flex-col items-center gap-2 cursor-pointer hover:-translate-y-1 transition-transform">
-          <div className="w-24 h-24 md:w-28 md:h-28 flex items-center justify-center relative drop-shadow-2xl">
-            <img src="/kore_ai.png" alt="KORE AI" className="w-full h-full object-contain relative z-10" />
-          </div>
-          <span className="bg-foreground text-background text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-1 group-hover:translate-y-0 tracking-wider">
-            KORE AI
-          </span>
-        </a>
-      </div>
+      {/* Floating KORE AI Chat Widget */}
+      <KoreAiChatWidget />
 
     </div>
   );

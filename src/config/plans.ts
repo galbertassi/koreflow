@@ -1,9 +1,10 @@
-﻿export type PlanType = "Free" | "Pro" | "Business";
+export type PlanType = "Free" | "Pro" | "Business";
 
 export interface PlanLimits {
   name: PlanType;
   maxUsers: number;
   maxDemandsPerMonth: number;
+  maxMinutesPerMonth: number;
   hasUnlimitedDemands: boolean;
   aiFeatures: "Limited" | "Full";
   canExportPDF: boolean;
@@ -17,7 +18,8 @@ export const PLANS: Record<PlanType, PlanLimits> = {
   Free: {
     name: "Free",
     maxUsers: 1,
-    maxDemandsPerMonth: 50,
+    maxDemandsPerMonth: 10,
+    maxMinutesPerMonth: 600, // 10 horas
     hasUnlimitedDemands: false,
     aiFeatures: "Limited",
     canExportPDF: false,
@@ -28,8 +30,9 @@ export const PLANS: Record<PlanType, PlanLimits> = {
   },
   Pro: {
     name: "Pro",
-    maxUsers: 1, // ou n├║mero acordado (pode ser ilimitado, mas business ├® multi-user)
+    maxUsers: 1, // ou número acordado (pode ser ilimitado, mas business é multi-user)
     maxDemandsPerMonth: 999999,
+    maxMinutesPerMonth: 999999,
     hasUnlimitedDemands: true,
     aiFeatures: "Full",
     canExportPDF: true,
@@ -40,8 +43,9 @@ export const PLANS: Record<PlanType, PlanLimits> = {
   },
   Business: {
     name: "Business",
-    maxUsers: 999999, // M├║ltiplos usu├írios
+    maxUsers: 999999, // Múltiplos usuários
     maxDemandsPerMonth: 999999,
+    maxMinutesPerMonth: 999999,
     hasUnlimitedDemands: true,
     aiFeatures: "Full",
     canExportPDF: true,
