@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     }
 
     // Criar a sessão de checkout
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.koredigital.com.br";
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "subscription",
