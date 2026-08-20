@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import Stripe from "stripe";
 
+const DEFAULT_PRICE_PRO_MONTHLY = "price_1TvjuSKVkoKsHX0OioHGjH2U";
+const DEFAULT_PRICE_PRO_ANNUAL = "price_1TvjuSKVkoKsHX0O5vsgNKRO";
+
 function getStripe() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
-    throw new Error("A chave STRIPE_SECRET_KEY não foi configurada no servidor Vercel.");
+    throw new Error("A chave STRIPE_SECRET_KEY não foi configurada nas variáveis de ambiente do Vercel.");
   }
   return new Stripe(secretKey, {
     apiVersion: "2024-12-18.acacia",
@@ -19,7 +22,7 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Usuário não autenticado" }, { status: 401 });
     }
 
     // Bypass RLS using service role client to avoid infinite recursion error in RLS
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     if (!companyId) {
-       return new NextResponse("Não foi possível criar o workspace para o usuário", { status: 400 });
+       return NextResponse.json({ error: "Não foi possível criar o workspace para o usuário" }, { status: 400 });
     }
 
     const { plan } = await req.json();
@@ -63,13 +66,13 @@ export async function POST(req: Request) {
     // Determinar o Price ID do Stripe baseado no plano
     let priceId = "";
     if (plan === "PRO_MONTHLY") {
-      priceId = process.env.STRIPE_PRICE_PRO_MONTHLY || "";
+      priceId = process.env.STRIPE_PRICE_PRO_MONTHLY || DEFAULT_PRICE_PRO_MONTHLY;
     } else if (plan === "PRO_ANNUAL") {
-      priceId = process.env.STRIPE_PRICE_PRO_ANNUAL || "";
+      priceId = process.env.STRIPE_PRICE_PRO_ANNUAL || DEFAULT_PRICE_PRO_ANNUAL;
     }
 
     if (!priceId) {
-      return new NextResponse("Price ID not configured", { status: 400 });
+      return NextResponse.json({ error: "Price ID não configurado no servidor" }, { status: 400 });
     }
 
     // Pegar o customer ID se já existir
