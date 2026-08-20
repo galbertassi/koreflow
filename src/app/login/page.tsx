@@ -7,12 +7,12 @@ import { useState, use } from "react";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string; intent?: string; plan?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; intent?: string; plan?: string; mode?: string }>;
 }) {
   const params = use(searchParams);
   const [emailFocus, setEmailFocus] = useState(false);
   const [passFocus, setPassFocus] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(params?.mode !== "signup");
 
   return (
     <div
