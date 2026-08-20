@@ -3,26 +3,22 @@ import { headers } from "next/headers";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2024-12-18.acacia",
+});
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// Usar client admin para poder atualizar a tabela no webhook
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(req: Request) {
   try {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
-      return new NextResponse("Stripe secret key missing", { status: 500 });
-    }
-    const stripe = new Stripe(secretKey, {
-      apiVersion: "2024-12-18.acacia",
-    });
-
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     const body = await req.text();
-    const headersList = await headers();
-    const signature = headersList.get("Stripe-Signature") as string;
+    const signature = headers().get("Stripe-Signature") as string;
 
     let event: Stripe.Event;
 
@@ -48,9 +44,9 @@ export async function POST(req: Request) {
 
       // Determinar o plano pelo preço
       const priceId = subscription.items.data[0].price.id;
-      let plan = "Free";
-      if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) plan = "Pro";
-      if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) plan = "Pro";
+      let plan = "free";
+      if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) plan = "PRO_MONTHLY";
+      if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) plan = "PRO_ANNUAL";
 
       await supabaseAdmin
         .from("kore_companies")
@@ -69,17 +65,11 @@ export async function POST(req: Request) {
     if (event.type === "invoice.payment_succeeded") {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       
-      const priceId = subscription.items.data[0].price.id;
-      let plan = "Free";
-      if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) plan = "Pro";
-      if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) plan = "Pro";
-
       await supabaseAdmin
         .from("kore_companies")
         .update({
           stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           plan_status: "active",
-          plan: plan,
         })
         .eq("stripe_subscription_id", subscription.id);
     }
@@ -91,7 +81,6 @@ export async function POST(req: Request) {
         .from("kore_companies")
         .update({
           plan_status: "past_due",
-          plan: "Free",
         })
         .eq("stripe_subscription_id", subscription.id);
     }
@@ -103,7 +92,7 @@ export async function POST(req: Request) {
         .from("kore_companies")
         .update({
           plan_status: "canceled",
-          plan: "Free",
+          plan: "free",
         })
         .eq("stripe_subscription_id", subscription.id);
     }

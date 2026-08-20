@@ -2,60 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import Stripe from "stripe";
 
-function getStripe() {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("A chave STRIPE_SECRET_KEY não foi configurada no servidor Vercel.");
-  }
-  return new Stripe(secretKey, {
-    apiVersion: "2024-12-18.acacia",
-  });
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2024-12-18.acacia", // ou a versão mais atual suportada
+});
 
 export async function POST(req: Request) {
   try {
-    const stripe = getStripe();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    // Bypass RLS using service role client to avoid infinite recursion error in RLS
-    const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const { data: companyUser } = await supabaseAdmin
-      .from('kore_company_users')
-      .select('company_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    let companyId = companyUser?.company_id;
-
-    if (!companyId) {
-      const { data: newCompany } = await supabaseAdmin
-        .from('kore_companies')
-        .insert({ name: `Workspace de ${user.email?.split('@')[0] || 'Usuário'}` })
-        .select('id')
-        .single();
-      
-      if (newCompany?.id) {
-        companyId = newCompany.id;
-        await supabaseAdmin.from('kore_company_users').insert({
-          company_id: companyId,
-          user_id: user.id,
-          role: 'owner'
-        });
-      }
-    }
-
-    if (!companyId) {
-       return new NextResponse("Não foi possível criar o workspace para o usuário", { status: 400 });
     }
 
     const { plan } = await req.json();
@@ -73,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     // Pegar o customer ID se já existir
-    const { data: userData } = await supabaseAdmin
+    const { data: userData } = await supabase
       .from("kore_configuracoes")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
@@ -92,7 +49,7 @@ export async function POST(req: Request) {
       stripeCustomerId = customer.id;
 
       // Atualizar no banco (upsert garante que a linha vai existir mesmo para usuarios novos)
-      await supabaseAdmin
+      await supabase
         .from("kore_configuracoes")
         .upsert({ 
           user_id: user.id,
@@ -118,7 +75,6 @@ export async function POST(req: Request) {
       cancel_url: `${appUrl}/vendas`,
       metadata: {
         user_id: user.id,
-        company_id: companyId
       }
     });
 

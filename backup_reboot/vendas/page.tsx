@@ -53,16 +53,6 @@ export default function VendasPremiumPage() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const intent = params.get('intent');
-      const plan = params.get('plan');
-      if (intent === 'checkout' && plan) {
-        window.history.replaceState({}, '', window.location.pathname);
-        handleCheckout(plan);
-      }
-    }
-
     const handleScroll = () => {
       if (window.scrollY > 300) {
         setShowScrollTop(true);
@@ -1023,13 +1013,13 @@ export default function VendasPremiumPage() {
               </button>
             </div>
 
-            {/* PLUS ANUAL */}
+            {/* PRO ANUAL */}
             <div className="bg-[#111] border border-[#8B5CF6]/80 rounded-2xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.25)] flex flex-col transform md:-translate-y-8">
               <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#C4B5FD] to-[#8B5CF6]"></div>
               <div className="absolute top-4 right-4 bg-[#8B5CF6] text-white text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full">
                 Recomendado (16% OFF)
               </div>
-              <h3 className="text-white text-xl font-bold mb-2 flex items-center gap-2">PLUS Anual <span className="text-[#8B5CF6]">★</span></h3>
+              <h3 className="text-white text-xl font-bold mb-2 flex items-center gap-2">PRO Anual <span className="text-[#8B5CF6]">★</span></h3>
               <p className="text-gray-400 text-sm mb-6 h-10">O maior custo-benefício para a sua operação.</p>
               <div className="mb-2">
                 <span className="text-gray-500 text-lg">R$</span>
