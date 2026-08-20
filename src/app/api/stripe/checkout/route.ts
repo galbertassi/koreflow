@@ -59,18 +59,12 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: "Não foi possível criar o workspace para o usuário" }, { status: 400 });
     }
 
-    const { plan } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const planKey = (body?.plan || "").toString().toUpperCase();
 
-    // Determinar o Price ID do Stripe baseado no plano
-    let priceId = "";
-    if (plan === "PRO_MONTHLY") {
-      priceId = process.env.STRIPE_PRICE_PRO_MONTHLY || DEFAULT_PRICE_PRO_MONTHLY;
-    } else if (plan === "PRO_ANNUAL") {
+    let priceId = process.env.STRIPE_PRICE_PRO_MONTHLY || DEFAULT_PRICE_PRO_MONTHLY;
+    if (planKey.includes("ANNUAL") || planKey.includes("ANUAL")) {
       priceId = process.env.STRIPE_PRICE_PRO_ANNUAL || DEFAULT_PRICE_PRO_ANNUAL;
-    }
-
-    if (!priceId) {
-      return NextResponse.json({ error: "Price ID não configurado no servidor" }, { status: 400 });
     }
 
     // Pegar o customer ID se já existir
