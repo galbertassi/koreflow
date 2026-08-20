@@ -76,6 +76,20 @@ export async function POST(req: Request) {
 
     let stripeCustomerId = userData?.stripe_customer_id;
 
+    // Se o ID salvo existir, valida se é válido no ambiente atual (live vs test)
+    if (stripeCustomerId) {
+      try {
+        await stripe.customers.retrieve(stripeCustomerId);
+      } catch (err: any) {
+        if (err?.code === 'resource_missing') {
+          // ID de test mode salvo — precisa criar novo customer no live
+          stripeCustomerId = null;
+        } else {
+          throw err;
+        }
+      }
+    }
+
     if (!stripeCustomerId) {
       // Criar novo customer no Stripe
       const customer = await stripe.customers.create({
