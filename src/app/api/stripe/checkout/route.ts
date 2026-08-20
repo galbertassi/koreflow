@@ -23,12 +23,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Usuário não autenticado" }, { status: 401 });
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://urybvljsmrwxmfjcgdvt.supabase.co";
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyeWJ2bGpzbXJ3eG1mamlndnQiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzgxMjIxNjQ0LCJleHAiOjIwOTY3OTc2NDR9.WPRAuBLsvuyAuGWIsAhk82U9Bj1Yu9upBpOLgq3hwQE";
+
     // Bypass RLS using service role client to avoid infinite recursion error in RLS
     const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = createSupabaseClient(supabaseUrl, serviceRoleKey);
 
     const { data: companyUser } = await supabaseAdmin
       .from('kore_company_users')
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         .from('kore_companies')
         .insert({ name: `Workspace de ${user.email?.split('@')[0] || 'Usuário'}` })
         .select('id')
-        .single();
+        .maybeSingle();
       
       if (newCompany?.id) {
         companyId = newCompany.id;
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       .from("kore_configuracoes")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     let stripeCustomerId = userData?.stripe_customer_id;
 
