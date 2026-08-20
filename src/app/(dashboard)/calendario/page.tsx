@@ -138,13 +138,13 @@ export default function CalendarioPage() {
       </div>
 
       {showForm && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 transition-opacity duration-200" onClick={() => setShowForm(false)}>
           <div 
-            className="bg-white rounded-2xl shadow-xl border border-border w-full max-w-md p-6 relative"
+            className="bg-white rounded-2xl shadow-2xl border border-border w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-150"
             ref={formRef}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground">
+            <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground transition-colors">
               <X className="w-4 h-4" />
             </button>
             <h2 className="text-lg font-bold mb-1">Novo Evento</h2>
@@ -168,7 +168,8 @@ export default function CalendarioPage() {
                   type="date" 
                   value={novoEvento.data}
                   onChange={e => setNovoEvento({...novoEvento, data: e.target.value})}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20"
+                  style={{ colorScheme: "light" }}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 bg-white"
                 />
               </div>
 
