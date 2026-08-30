@@ -7,7 +7,7 @@ import { useState, use } from "react";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string; intent?: string; plan?: string; mode?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; intent?: string; plan?: string; mode?: string; email?: string }>;
 }) {
   const params = use(searchParams);
   const [emailFocus, setEmailFocus] = useState(false);
@@ -120,9 +120,17 @@ export default function LoginPage({
                 </p>
               </div>
 
-              <form id="auth-form" action={isLogin ? login : signup} className="space-y-5">
+              <form action={isLogin ? login : signup} className="space-y-4">
                 {params?.intent && <input type="hidden" name="intent" value={params.intent} />}
                 {params?.plan && <input type="hidden" name="plan" value={params.plan} />}
+
+                {params?.message && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+                    <p className="text-[13px] text-red-400 font-medium">
+                      {decodeURIComponent(params.message).replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Inputs Glass */}
                 <div className="space-y-4">
@@ -132,7 +140,7 @@ export default function LoginPage({
                         id="name"
                         name="name"
                         type="text"
-                        required={!isLogin}
+                        required
                         placeholder="Seu nome"
                         className="w-full h-[52px] px-4 rounded-xl text-[14px] text-white font-medium placeholder:text-[#666666] transition-all duration-300 outline-none"
                         style={{
@@ -149,6 +157,7 @@ export default function LoginPage({
                       name="email"
                       type="email"
                       required
+                      defaultValue={params?.email || ""}
                       placeholder="seu@email.com"
                       onFocus={() => setEmailFocus(true)}
                       onBlur={() => setEmailFocus(false)}

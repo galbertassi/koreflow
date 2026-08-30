@@ -56,7 +56,10 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/ping") ||
     request.nextUrl.pathname.startsWith("/sitemap.xml") ||
     request.nextUrl.pathname.startsWith("/robots.txt") ||
-    request.nextUrl.pathname.startsWith("/api/stripe");
+    request.nextUrl.pathname.startsWith("/api/stripe") ||
+    request.nextUrl.pathname.startsWith("/api/webhooks") ||
+    request.nextUrl.pathname.startsWith("/api/hotmart") ||
+    request.nextUrl.pathname.startsWith("/afiliados");
 
   let session = null;
   try {
